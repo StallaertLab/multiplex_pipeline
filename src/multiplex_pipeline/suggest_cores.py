@@ -75,7 +75,7 @@ def main():
 
     # Additional arguments
     parser.add_argument("-m", "--model", type=str, help="Path to sam2 model.")
-    parser.add_argument("-o", "--output", type=str, help="File to the output file.")
+    parser.add_argument("-o", "--output", type=str, help="Path to the output file.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -90,23 +90,11 @@ def main():
             print("No model path provided, and no default model available for this workstation.")
             sys.exit(1)
 
-
-    # # Load and validate the model
-    # try:
-    #     build_sam2 = load_module_from_path(args.model, "sam2.build_sam", "build_sam2")
-    #     print("Successfully loaded 'build_sam2' function.")
-    #     SAM2AutomaticMaskGenerator = load_module_from_path(args.model, "sam2.automatic_mask_generator", "SAM2AutomaticMaskGenerator")
-    #     print("Successfully loaded 'SAM2AutomaticMaskGenerator' class.\n")
-    # except Exception as e:
-    #     print(f"Error loading model from {args.model}: {e}")
-    #     sys.exit(1)
-
     # change the working directory to the model path
     os.chdir(args.model)
 
     # Define saving path
-    if args.output is None:
-        args.output = os.path.join(os.path.dirname(os.getcwd()),'masks.pkl')
+    if args.output is None:s
 
     # inform about the input and output pathways
     print(f"Input image: {args.im}")
