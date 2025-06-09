@@ -1,3 +1,5 @@
+"""CLI utility for segmenting images with SAM2 and saving core suggestions."""
+
 import os
 import sys
 import torch

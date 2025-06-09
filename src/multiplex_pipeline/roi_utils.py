@@ -1,3 +1,5 @@
+"""ROI processing helpers for filtering, resizing and saving polygons."""
+
 import os
 import pickle as pkl
 import numpy as np

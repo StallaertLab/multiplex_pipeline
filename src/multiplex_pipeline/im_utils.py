@@ -1,3 +1,5 @@
+"""Image utilities for reading multiscale images and preparing RGB previews."""
+
 import json
 import zarr
 from tifffile import imread

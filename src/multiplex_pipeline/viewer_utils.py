@@ -1,3 +1,5 @@
+"""Napari viewer helpers for displaying and saving ROI layers."""
+
 from qtpy.QtWidgets import QFileDialog
 
 from multiplex_pipeline.roi_utils import read_in_saved_rois, prepare_poly_df_for_saving, get_visual_rectangles

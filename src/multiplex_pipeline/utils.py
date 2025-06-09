@@ -1,3 +1,5 @@
+"""General utilities for configuration loading and dynamic path handling."""
+
 import os
 import sys
 import importlib
