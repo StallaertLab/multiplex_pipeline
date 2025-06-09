@@ -1,0 +1,85 @@
+# Byte-compiled / optimized / compiled Python files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyInstaller
+# Usually these files are written by a Python script from a template
+# before PyInstaller builds the binaries.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+*.cover
+.cache
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*.orig
+*.tmp
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Build system files
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# setuptools-scm version file
+src/track_gardener/_version.py
+
+# Logs and debug files
+*.log
+*.stackdump
+
+# Optional: Exclude data directories if they don't belong in the repo
+data/raw/
+data/processed/
+data/results/
+
+# Temporary files and directories
+*.temp
+*.tmp
+*.old
+*.backup
+*.orig
+*.save
