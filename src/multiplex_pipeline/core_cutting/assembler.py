@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tifffile
+from loguru import logger
 
 from spatialdata import SpatialData
 from spatialdata.models import Image2DModel
@@ -43,6 +44,7 @@ class CoreAssembler:
             raise ValueError(f"No TIFFs found for core: {core_id}")
 
         images = {}
+        used_channels = []
 
         for fname in channel_files:
             channel_name = os.path.splitext(fname)[0]
@@ -60,6 +62,10 @@ class CoreAssembler:
             image_model = Image2DModel.parse(np.expand_dims(base_img, axis=0), dims=("c","y","x"), scale_factors=[2] * (self.max_pyramid_levels-1))
 
             images[channel_name] = image_model
+            used_channels.append(channel_name)
+
+        # log the info
+        logger.info(f"Core '{core_id}' assembled with channels: {used_channels}")
 
         # Construct and write SpatialData
         sdata = SpatialData(images=images)
