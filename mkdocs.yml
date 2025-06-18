@@ -1,0 +1,15 @@
+site_name: Multiplex Pipeline
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - API Reference: api.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]

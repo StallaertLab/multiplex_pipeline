@@ -1,0 +1,15 @@
+core_info: "R:/Wayne/BLCA/BLCA-1B_Analysis/df_03.csv"
+image_dir: "R:/CellDive/BLCA-1B/BLCA-1B_Final"
+temp_dir: "D:/multiplex_pipeline/tests"
+output_dir: "R:/Wayne/BLCA/BLCA-1B_Analysis/temp"
+
+include_channels: []
+exclude_channels: []
+use_channels: []
+
+margin: 0
+mask_value: 0
+max_pyramid_levels: 3
+
+transfer_cleanup_enabled: True
+core_cleanup_enabled: True
