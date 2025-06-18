@@ -11,19 +11,22 @@ class CoreAssembler:
     def __init__(self, temp_dir, output_dir,
                  max_pyramid_levels=4,
                  downscale=2,
-                 allowed_channels=None):
+                 allowed_channels=None,
+                 cleanup: bool = False):
         """
         temp_dir: base directory containing temp core folders
         output_dir: where final .zarr SpatialData will be written
         max_pyramid_levels: max number of downsampling levels (0 = no pyramid)
         downscale: downscaling factor per level (typically 2)
         allowed_channels: optional list of channel names to process (e.g., ['pRB', '009_DAPI'])
+        cleanup: if True, delete per-channel TIFFs after assembling
         """
         self.temp_dir = temp_dir
         self.output_dir = output_dir
         self.max_pyramid_levels = max_pyramid_levels
         self.downscale = downscale
-        self.allowed_channels = allowed_channels  # optional subset
+        self.allowed_channels = allowed_channels
+        self.cleanup = cleanup
 
 
     def assemble_core(self, core_id):
@@ -73,4 +76,16 @@ class CoreAssembler:
         output_path = os.path.join(self.output_dir, f"{core_id}.zarr")
         sdata.write(output_path, overwrite=True)
 
+        if self.cleanup:
+            self._cleanup_core_files(core_path, used_channels)
+
         return output_path
+
+    def _cleanup_core_files(self, core_path, channels):
+        for ch in channels:
+            tiff_path = os.path.join(core_path, f"{ch}.tiff")
+            try:
+                os.remove(tiff_path)
+                logger.debug(f"Deleted intermediate TIFF: {tiff_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete {tiff_path}: {e}")
