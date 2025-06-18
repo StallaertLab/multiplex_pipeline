@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from skimage.draw import polygon as sk_polygon
 
 
@@ -16,7 +17,7 @@ class CoreCutter:
         self.margin = margin
         self.mask_value = mask_value
 
-    def extract_core(self, array, row):
+    def extract_core(self, array: np.ndarray, row: pd.Series) -> np.ndarray:
         """Extract a single core from the given image.
 
         Args:

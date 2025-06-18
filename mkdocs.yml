@@ -5,6 +5,10 @@ theme:
 nav:
   - Home: index.md
   - Usage: usage.md
+  - Configuration:
+    - Overview: configuration/index.md
+    - Core cutting: configuration/core-cutting.md
+    - Channel Selection: configuration/channel-selection.md
   - API Reference: api.md
 
 plugins:
@@ -13,3 +17,10 @@ plugins:
       handlers:
         python:
           paths: [src]
+          options:
+            show_root_toc_entry: false
+            merge_init_into_class: true
+            show_source: false
+            extra:
+              show_symbol_type: true
+            

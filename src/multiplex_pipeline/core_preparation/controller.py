@@ -68,37 +68,6 @@ class CorePreparationController:
         self.completed_channels = set()
         self.ready_cores = {}  # core_id -> set of completed channels
 
-    def run(self):
-        """Process all channels and assemble cores.
-
-        This method blocks until all channels have been processed and the
-        corresponding cores have been assembled.
-        """
-
-        logger.info("Starting controller run loop...")
-
-        while True:
-            all_ready = True
-
-            for channel, path in self.image_paths.items():
-                if channel in self.completed_channels:
-                    continue
-
-                if self.file_strategy.fetch_or_wait(channel, path):
-                    self.cut_channel(channel, path)
-                    self.file_strategy.cleanup(Path(path))
-                    self.completed_channels.add(channel)
-                else:
-                    all_ready = False
-
-            self.try_assemble_ready_cores()
-
-            if all_ready and not self.ready_cores:
-                logger.info("All channels processed and cores assembled.")
-                break
-
-            time.sleep(10)
-
     def cut_channel(self, channel, file_path):
         """Cut all cores from a single channel image.
 
@@ -131,3 +100,34 @@ class CorePreparationController:
                 logger.info(f"Assembling full core {core_id}")
                 self.assembler.assemble_core(core_id)
                 del self.ready_cores[core_id]
+
+    def run(self):
+        """Process all channels and assemble cores.
+
+        This method blocks until all channels have been processed and the
+        corresponding cores have been assembled.
+        """
+
+        logger.info("Starting controller run loop...")
+
+        while True:
+            all_ready = True
+
+            for channel, path in self.image_paths.items():
+                if channel in self.completed_channels:
+                    continue
+
+                if self.file_strategy.fetch_or_wait(channel, path):
+                    self.cut_channel(channel, path)
+                    self.file_strategy.cleanup(Path(path))
+                    self.completed_channels.add(channel)
+                else:
+                    all_ready = False
+
+            self.try_assemble_ready_cores()
+
+            if all_ready and not self.ready_cores:
+                logger.info("All channels processed and cores assembled.")
+                break
+
+            time.sleep(10)
