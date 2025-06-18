@@ -20,9 +20,14 @@ from utils import get_workstation_path
 from im_utils import prepare_rgb_image
 
 def set_cuda(model_path):
-    '''
-    Function to set the environment for sam2 segmentation.
-    '''
+    """Configure CUDA settings for SAM2 segmentation.
+
+    Args:
+        model_path (str): Path to the directory with the SAM2 model.
+
+    Returns:
+        tuple[torch.device, str, str]: CUDA device, checkpoint path and model configuration path.
+    """
     assert torch.cuda.is_available()
 
     device = torch.device("cuda")
@@ -31,10 +36,27 @@ def set_cuda(model_path):
 
     return device,sam2_checkpoint,model_cfg
 
-def sam2_segment(im_rgb,build_sam2,SAM2AutomaticMaskGenerator, device,sam2_checkpoint,model_cfg):
-    '''
-    Function to segment the image using the sam2 model.
-    '''
+def sam2_segment(
+    im_rgb,
+    build_sam2,
+    SAM2AutomaticMaskGenerator,
+    device,
+    sam2_checkpoint,
+    model_cfg,
+):
+    """Segment an RGB image using the SAM2 model.
+
+    Args:
+        im_rgb (numpy.ndarray): RGB image to segment.
+        build_sam2 (Callable): Function that builds a SAM2 model instance.
+        SAM2AutomaticMaskGenerator (Callable): Mask generator class.
+        device (torch.device): CUDA device used for inference.
+        sam2_checkpoint (str): Path to the SAM2 checkpoint file.
+        model_cfg (str): Path to the SAM2 configuration file.
+
+    Returns:
+        list[dict]: Segmentation masks for the input image.
+    """
 
     # clear the cache
     torch.cuda.empty_cache()
