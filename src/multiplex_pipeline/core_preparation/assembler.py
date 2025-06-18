@@ -1,25 +1,35 @@
 import os
+
 import numpy as np
 import tifffile
 from loguru import logger
-
 from spatialdata import SpatialData
 from spatialdata.models import Image2DModel
-from spatialdata.transformations import Identity
+
 
 class CoreAssembler:
-    def __init__(self, temp_dir, output_dir,
-                 max_pyramid_levels=4,
-                 downscale=2,
-                 allowed_channels=None,
-                 cleanup: bool = False):
-        """
-        temp_dir: base directory containing temp core folders
-        output_dir: where final .zarr SpatialData will be written
-        max_pyramid_levels: max number of downsampling levels (0 = no pyramid)
-        downscale: downscaling factor per level (typically 2)
-        allowed_channels: optional list of channel names to process (e.g., ['pRB', '009_DAPI'])
-        cleanup: if True, delete per-channel TIFFs after assembling
+    """Assemble per-channel TIFFs into a ``SpatialData`` object."""
+
+    def __init__(
+        self,
+        temp_dir: str,
+        output_dir: str,
+        max_pyramid_levels: int = 4,
+        downscale: int = 2,
+        allowed_channels: list[str] | None = None,
+        cleanup: bool = False,
+    ) -> None:
+        """Initialize the assembler.
+
+        Args:
+            temp_dir (str): Directory containing temporary per-core folders.
+            output_dir (str): Location where ``.zarr`` outputs are written.
+            max_pyramid_levels (int, optional): Maximum number of
+                multiscale levels. ``0`` disables pyramid creation.
+            downscale (int, optional): Downsampling factor per level.
+            allowed_channels (list[str] | None, optional): Restrict processing
+                to these channels. If ``None`` all channels are used.
+            cleanup (bool, optional): Remove intermediate TIFFs when ``True``.
         """
         self.temp_dir = temp_dir
         self.output_dir = output_dir
@@ -28,21 +38,33 @@ class CoreAssembler:
         self.allowed_channels = allowed_channels
         self.cleanup = cleanup
 
+    def assemble_core(self, core_id: str) -> str:
+        """Assemble a single core from its per-channel TIFF images.
 
-    def assemble_core(self, core_id):
-        """
-        Build one SpatialData object from per-channel TIFFs.
-        Each channel is a multiscale image entry in the SpatialData.images.
+        Args:
+            core_id (str): Identifier of the core's temporary folder.
+
+        Returns:
+            str: Path to the written ``.zarr`` dataset.
+
+        Raises:
+            FileNotFoundError: If the temporary core folder is missing.
+            ValueError: If no TIFF files are found in the folder.
         """
         core_path = os.path.join(self.temp_dir, core_id)
         if not os.path.exists(core_path):
-            raise FileNotFoundError(f"No temp folder found for core: {core_id}")
+            raise FileNotFoundError(
+                f"No temp folder found for core: {core_id}"
+            )
 
         # Collect and sort TIFFs
-        channel_files = sorted([
-            f for f in os.listdir(core_path)
-            if f.lower().endswith(".tiff") or f.lower().endswith(".tif")
-        ])
+        channel_files = sorted(
+            [
+                f
+                for f in os.listdir(core_path)
+                if f.lower().endswith(".tiff") or f.lower().endswith(".tif")
+            ]
+        )
         if not channel_files:
             raise ValueError(f"No TIFFs found for core: {core_id}")
 
@@ -53,7 +75,10 @@ class CoreAssembler:
             channel_name = os.path.splitext(fname)[0]
 
             # Skip if not in allowed list
-            if self.allowed_channels and channel_name not in self.allowed_channels:
+            if (
+                self.allowed_channels
+                and channel_name not in self.allowed_channels
+            ):
                 continue
 
             full_path = os.path.join(core_path, fname)
@@ -62,13 +87,19 @@ class CoreAssembler:
             base_img = tifffile.imread(full_path)
 
             # Parse into SpatialData model
-            image_model = Image2DModel.parse(np.expand_dims(base_img, axis=0), dims=("c","y","x"), scale_factors=[2] * (self.max_pyramid_levels-1))
+            image_model = Image2DModel.parse(
+                np.expand_dims(base_img, axis=0),
+                dims=("c", "y", "x"),
+                scale_factors=[2] * (self.max_pyramid_levels - 1),
+            )
 
             images[channel_name] = image_model
             used_channels.append(channel_name)
 
         # log the info
-        logger.info(f"Core '{core_id}' assembled with channels: {used_channels}")
+        logger.info(
+            f"Core '{core_id}' assembled with channels: {used_channels}"
+        )
 
         # Construct and write SpatialData
         sdata = SpatialData(images=images)
@@ -81,11 +112,17 @@ class CoreAssembler:
 
         return output_path
 
-    def _cleanup_core_files(self, core_path, channels):
+    def _cleanup_core_files(self, core_path: str, channels: list[str]) -> None:
+        """Delete intermediate TIFF files for the given channels.
+
+        Args:
+            core_path (str): Temporary directory for the core.
+            channels (list[str]): Channel names to remove.
+        """
         for ch in channels:
             tiff_path = os.path.join(core_path, f"{ch}.tiff")
             try:
                 os.remove(tiff_path)
                 logger.debug(f"Deleted intermediate TIFF: {tiff_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete {tiff_path}: {e}")
+            except OSError as exc:
+                logger.warning(f"Failed to delete {tiff_path}: {exc}")
