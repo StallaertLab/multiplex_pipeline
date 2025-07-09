@@ -1,3 +1,5 @@
+# core cutting
+
 core_info: "R:/Wayne/BLCA/BLCA-1B_Analysis/df_03.csv"
 image_dir: "R:/CellDive/BLCA-1B/BLCA-1B_Final"
 temp_dir: "D:/multiplex_pipeline/tests"
@@ -13,3 +15,24 @@ max_pyramid_levels: 3
 
 transfer_cleanup_enabled: True
 core_cleanup_enabled: True
+
+# pre-processing
+
+preprocessing:
+  channels: ["DAPI", "CD3"]
+  mix: "none"  # options: "sum", "mean", "none"
+  denoise: "median" # options: "median", "gaussian", "none"
+  normalize: True # optional, only used when mixing
+  output_name: "nuclei_input"  # optional, only used when mixing
+
+# segmentation
+
+segmentation_nucleus:
+  segmentation_method: "cellpose"
+  cellpose_model: "cyto2"
+  cellpose_diameter: 30
+  cellpose_flow_threshold: 0.4
+  cellpose_cellprob_threshold: 0.0
+  cellpose_mask_threshold: 0.0
+  cellpose_gpu: True
+  nuc_channels: ['DAPI']
