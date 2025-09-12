@@ -16,8 +16,8 @@ import numpy as np
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-from utils import get_workstation_path
-from im_utils import prepare_rgb_image
+from multiplex_pipeline.utils.utils import get_workstation_path
+from multiplex_pipeline.im_utils import prepare_rgb_image
 
 def set_cuda(model_path):
     """Configure CUDA settings for SAM2 segmentation.

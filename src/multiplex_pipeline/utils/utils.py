@@ -52,7 +52,8 @@ def get_workstation_path(key="model_path", config_path=None):
     """
     # Locate the configuration file within the package
     if config_path is None:
-        config_path = Path(__file__).resolve().parent.parent.parent / "config" / "defaults.yaml"
+        config_path = Path(os.getcwd()).resolve().parent / "config" / "defaults.yaml"
+        #config_path = Path(__file__).resolve().parent.parent.parent / "config" / "defaults.yaml"
     
     hostname = platform.node()
     
