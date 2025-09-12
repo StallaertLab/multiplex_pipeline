@@ -66,6 +66,7 @@ def display_saved_rois(viewer, IM_LEVEL, save_path=None):
         None
     """
     rect_list, poly_list, df = read_in_saved_rois(save_path, IM_LEVEL = IM_LEVEL)
+    
     if len(rect_list) > 0:
         redo_bbox_layer(viewer,rect_list,df['core_name'].tolist())
         redo_cores_layer(viewer,poly_list,shape_type = df.poly_type.to_list())
