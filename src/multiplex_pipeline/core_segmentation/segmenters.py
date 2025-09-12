@@ -57,6 +57,53 @@ class CellposeSegmenter(BaseSegmenter):
                 "or a 3D array with shape (3, H, W)."
             )
         
+class Cellpose4Segmenter(BaseSegmenter):
+
+    def __init__(self, model_type: str = "cyto", **kwargs):
+        from cellpose import models
+        self.model = models.CellposeModel(gpu = True)
+        self.model_kwargs = kwargs
+
+    def run(self, image: Union[np.ndarray, Sequence[np.ndarray]], **kwargs) -> np.ndarray:
+        """
+        Run segmentation using Cellpose.
+        image: 
+            - 2D np.ndarray (single-channel)
+            - list of 1 np.ndarray (single-channel)
+            - list of 3 np.ndarray (multi-channel, channels kwarg required)
+            - 3D np.ndarray with shape (3, H, W) (multi-channel, channels kwarg required)
+        kwargs: must include 'channels' for multi-channel.
+        """
+        # Convert list with 1 or 3 images to numpy array
+        if isinstance(image, list):
+            if len(image) == 1:
+                image = image[0]  # Treat as single-channel
+            elif len(image) == 3:
+                image = np.stack(image, axis=0)  # (3, H, W)
+            else:
+                raise ValueError("List input must have 1 or 3 images.")
+
+        # At this point, image is either a 2D array or (3, H, W)
+        if isinstance(image, np.ndarray):
+            if image.ndim == 2:
+                # Single channel
+                mask, *_ = self.model.eval(image, **self.model_kwargs)
+                return mask
+            elif image.ndim == 3 and image.shape[0] == 3:
+                # Multi-channel: channels kwarg required
+                channels = kwargs.get("channels") or self.model_kwargs.get("channels")
+                if channels is None:
+                    raise ValueError("The 'channels' keyword argument must be specified for multi-channel Cellpose segmentation.")
+                mask, *_ = self.model.eval(image, channels=channels, **self.model_kwargs)
+                return mask
+            else:
+                raise ValueError("If passing a 3D array, shape must be (3, H, W) for multi-channel Cellpose.")
+        else:
+            raise ValueError(
+                "Input to CellposeSegmenter.run must be a 2D array, a list of 1 or 3 arrays, "
+                "or a 3D array with shape (3, H, W)."
+            )
+        
 class InstansegSegmenter(BaseSegmenter):
     
     def __init__(self, model_type, **kwargs):

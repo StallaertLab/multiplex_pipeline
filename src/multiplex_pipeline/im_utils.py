@@ -92,3 +92,7 @@ def prepare_rgb_image(im_path,perc_min = 0.01,perc_max = 99, req_level = 0):
     im_rgb = np.stack((im,)*3, axis=-1)
 
     return im_rgb
+
+def calculate_median(mask, im):
+    # extra property for regionprops
+    return np.median(im[mask > 0])

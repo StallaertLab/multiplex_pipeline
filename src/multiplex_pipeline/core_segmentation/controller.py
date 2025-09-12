@@ -1,24 +1,34 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from pathlib import Path
 import numpy as np
 import dask.array as da
 import spatialdata as sd
 from spatialdata.models import Labels2DModel
 from .segmenters import BaseSegmenter
+from .cleaners import DbscanEllipseCleaner
 from skimage.transform import resize
 import warnings
 from loguru import logger
 
 class SegmentationController:
     
-    def __init__(self, segmenter: BaseSegmenter, resolution_level: int = 0, pyramid_levels: int = 3, downscale: int = 2):
+    def __init__(
+        self,
+        segmenter: BaseSegmenter,
+        resolution_level: int = 0,
+        pyramid_levels: int = 3,
+        downscale: int = 2,
+        cleaner: Optional[object] = None
+    ):
         self.segmenter = segmenter
         self.resolution_level = resolution_level
         self.pyramid_levels = pyramid_levels
         self.downscale = downscale
+        self.cleaner = cleaner
         logger.info(
             f"Initialized SegmentationController with segmenter={segmenter}, "
-            f"resolution_level={resolution_level}, pyramid_levels={pyramid_levels}, downscale={downscale}"
+            f"resolution_level={resolution_level}, pyramid_levels={pyramid_levels}, downscale={downscale}, "
+            f"cleaner={cleaner}"
         )
 
     def segment_spatial_data(
@@ -50,11 +60,19 @@ class SegmentationController:
         images = [np.array(sd.get_pyramid_levels(sdata[ch], n=self.resolution_level)).squeeze() for ch in channels]
 
         # Run segmenter (expects list of np.ndarrays)
+        logger.info(f"Running segmentation on {len(images)} images at resolution level {self.resolution_level}.")
         masks = self.segmenter.run(images) 
 
         # Ensure masks is a list for consistent handling
         if not isinstance(masks, (list, tuple)):
             masks = [masks]
+
+        # cleaning if a cleaner is provided
+        if self.cleaner:  
+            logger.info("Cleaning masks using the provided cleaner.")  
+            masks[0] = self.cleaner.run(masks[0])
+            if len(masks) > 1:
+                masks[1:] = [self.cleaner.clean_with_mask(mask) for mask in masks[1:]]
 
         # Handle mask names
         if isinstance(mask_name, list):
