@@ -1,0 +1,75 @@
+# configuration file for the analysis pipeline
+
+################################################################################
+# basic settings
+################################################################################
+
+######################################################
+# data location
+######################################################
+image_path: "R:/CellDive/BLCA-1B/BLCA-1B_Final/BLCA-1B_1.0.4_R000_DAPI__FINAL_F.ome.tif"
+
+######################################################
+# core detection
+######################################################
+core_info_path: "R:/Wayne/BLCA/BLCA-1B_Analysis/cores.csv"
+
+######################################################
+# core cutting
+######################################################
+temp_dir_cores: "D:/multiplex_pipeline/tests"
+output_dir_cores: "R:/Wayne/BLCA/BLCA-1B_Analysis/temp"
+
+include_channels: []
+exclude_channels: []
+use_channels: []
+
+# pre-processing
+
+# preprocessing:
+#   channels: ["DAPI", "CD3"]
+#   mix: "none"  # options: "sum", "mean", "none"
+#   denoise: "median" # options: "median", "gaussian", "none"
+#   normalize: True # optional, only used when mixing
+#   output_name: "nuclei_input"  # optional, only used when mixing
+
+# # segmentation
+
+# segmentation_nucleus:
+#   segmentation_method: "cellpose"
+#   cellpose_model: "cyto2"
+#   cellpose_diameter: 30
+#   cellpose_flow_threshold: 0.4
+#   cellpose_cellprob_threshold: 0.0
+#   cellpose_mask_threshold: 0.0
+#   cellpose_gpu: True
+#   nuc_channels: ['DAPI']
+
+################################################################################
+# advanced settings
+################################################################################
+
+######################################################
+# core detection
+######################################################
+
+core_detection:
+  im_level: 6 # level to read the image for core definition
+  min_area: 2000  # minimum area of a core
+  max_area: 10000  # maximum area of a core
+  min_iou: 0.8  # SAM2 setting
+  min_st: 0.9  # SAM2 setting
+  min_int: 15  # SAM2 setting
+  frame: 4  # number of pixels to add to the bounding box of a roi
+
+######################################################
+# core cutting
+######################################################
+# margin: 0
+# mask_value: 0
+# max_pyramid_levels: 3
+
+# transfer_cleanup_enabled: True
+# core_cleanup_enabled: True
+
+
