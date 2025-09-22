@@ -16,7 +16,6 @@ import numpy as np
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 
-from multiplex_pipeline.utils.utils import get_workstation_path
 from multiplex_pipeline.im_utils import prepare_rgb_image
 
 def set_cuda(model_path):
@@ -96,29 +95,14 @@ def main():
     # Compulsory arguments
     parser.add_argument("im", type=str, help="Path to the image for segmentation.")
     parser.add_argument("req_level", type=int, help="Requested resolution level of the image.")
-
-    # Additional arguments
-    parser.add_argument("-m", "--model", type=str, help="Path to sam2 model.")
-    parser.add_argument("-o", "--output", type=str, help="Path to the output file.")
+    parser.add_argument("model", type=str, help="Path to sam2 model.")
+    parser.add_argument("output", type=str, help="Path to the output file.")
 
     # Parse the arguments
     args = parser.parse_args()
 
-    # Determine the model path
-    if args.model is None:
-        default_model_path = get_workstation_path(key="model_path")
-        if default_model_path:
-            print(f"No model path provided. Using default model path: {default_model_path}")
-            args.model = default_model_path
-        else:
-            print("No model path provided, and no default model available for this workstation.")
-            sys.exit(1)
-
     # change the working directory to the model path
     os.chdir(args.model)
-
-    # Define saving path
-    if args.output is None:s
 
     # inform about the input and output pathways
     print(f"Input image: {args.im}")
