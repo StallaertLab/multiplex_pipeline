@@ -17,17 +17,19 @@ def scan_channels_from_list(
     files: list[str] | tuple[str, ...],
     include_channels: list[str] | None = None,
     exclude_channels: list[str] | None = None,
-    use_channels: list[str] | None = None,
+    use_markers: list[str] | None = None,
+    ignore_markers: list[str] | None = None,
 ) -> dict[str, str]:
     """Build a channel map from a list of file paths.
 
     Args:
         files (Sequence[str]): Paths to OME-TIFF files.
         include_channels (list[str] | None, optional): Channels that should
-            always be included.
+            be included.
         exclude_channels (list[str] | None, optional): Channels to skip.
-        use_channels (list[str] | None, optional): Final subset of base channel
+        use_markers (list[str] | None, optional): Final subset of base channel
             names.
+        ignore_markers (list[str] | None, optional): Markers to ignore.
 
     Returns:
         dict[str, str]: Mapping of selected channel names to file paths.
@@ -38,7 +40,8 @@ def scan_channels_from_list(
 
     include_channels = include_channels or []
     exclude_channels = exclude_channels or []
-    use_channels = use_channels or []
+    use_markers = use_markers or []
+    ignore_markers = ignore_markers or []
 
     image_dict = {}
 
@@ -72,12 +75,17 @@ def scan_channels_from_list(
         channel_name = f"{round_num:03d}_{marker}"
         image_dict[channel_name] = filepath
 
+
+    # sort the discovered channels
+    image_dict = dict(sorted(image_dict.items()))
+
     if not image_dict:
         raise ValueError("No valid .0.4 OME-TIFF files found.")
 
-    logger.info(
-        f"Discovered channels before filtering: {list(image_dict.keys())}"
-    )
+    logger.info(f"Discovered {len(image_dict)} channels:")
+    for key,val in image_dict.items():
+        logger.info(f"{key} <- {val}")
+
 
     grouped = {}
     for ch in image_dict:
@@ -87,7 +95,6 @@ def scan_channels_from_list(
         grouped.setdefault(base, []).append((int(round_prefix), ch))
 
     result = {}
-    unused = set(image_dict.keys())
 
     for base, items in grouped.items():
         items.sort()
@@ -96,7 +103,6 @@ def scan_channels_from_list(
         if included:
             for name in included:
                 result[name] = image_dict[name]
-                unused.discard(name)
             continue
 
         items = [
@@ -109,38 +115,55 @@ def scan_channels_from_list(
             preferred = [name for _, name in items if name == "001_DAPI"]
             if preferred:
                 result["DAPI"] = image_dict[preferred[0]]
-                unused.discard(preferred[0])
         else:
             _, name = items[-1]
             result[base] = image_dict[name]
-            unused.discard(name)
 
-    # Apply final-use channel filter (e.g. DAPI, CD44)
-    if use_channels:
+    # Apply filters on markers
+    if use_markers:
+        for m in use_markers:
+            if m not in result:
+                logger.warning(f"Requested use_marker '{m}' not found.")
+        
         result = {
-            base: path for base, path in result.items() if base in use_channels
+            base: path for base, path in result.items() if base in use_markers
         }
-        logger.info(f"Restricting to use_channels = {use_channels}")
+        logger.info(f"Restricting to use_markers = {use_markers}")
         logger.info(f"Final filtered channels: {list(result.keys())}")
 
-    logger.info("Final selected channels:")
+    
+    if ignore_markers:
+        for m in ignore_markers:
+            if m not in result:
+                logger.warning(f"Requested ignore_marker '{m}' not found.")
+        
+        result = {
+            base: path for base, path in result.items() if base not in ignore_markers
+        }
+        logger.info(f"Ignoring markers = {ignore_markers}")
+        logger.info(f"Final filtered channels: {list(result.keys())}")
+
+    # Gather a list of unused channels
+    unused = {k: v for k, v in image_dict.items() if v not in result.values()}
+
+    # Final report
+    logger.info(f"Final selected channels {len(result)}:")
     for ch in sorted(result, key=str.casefold):
         logger.info(f"  Channel: {ch} <- {result[ch]}")
 
-    if unused:
-        logger.info("OME-TIFF files not used in final channel selection:")
-        for ch in sorted(unused):
-            logger.info(f"  Unused: Channel {ch} <- {image_dict[ch]}")
+    logger.info(f"OME-TIFF files not used in final channel selection {len(unused)}:")
+    for ch,file in sorted(unused.items()):
+        logger.info(f"  Unused: Channel {ch} <- {file}")
 
     return result
-
 
 def discover_channels(
     image_dir_or_path: str,
     include_channels: list[str] | None = None,
     exclude_channels: list[str] | None = None,
     gc: GlobusConfig | None = None,
-    use_channels: list[str] | None = None,
+    use_markers: list[str] | None = None,
+    ignore_markers: list[str] | None = None,
 ) -> dict[str, str]:
     """Discover available channels from local or Globus storage.
 
@@ -161,9 +184,8 @@ def discover_channels(
         files = list_local_files(image_dir_or_path)
 
     return scan_channels_from_list(
-        files, include_channels, exclude_channels, use_channels
+        files, include_channels, exclude_channels, use_markers, ignore_markers
     )
-
 
 def build_transfer_map(
     remote_paths: dict[str, str],
@@ -181,12 +203,12 @@ def build_transfer_map(
     """
     base = Path(full_local_path).resolve()
 
-    # Convert base to Globus-style POSIX path with /~/ prefix
+    # Convert base to Globus-style POSIX
     base_drive = base.drive.rstrip(":")  # Extract drive letter without colon
     base_suffix = base.relative_to(
         base.anchor
     ).as_posix()  # Strip drive anchor and convert to POSIX
-    base_globus = Path(f"/~/{base_drive}/{base_suffix}")
+    base_globus = Path(f"/{base_drive}/{base_suffix}")
 
     return {
         ch: (

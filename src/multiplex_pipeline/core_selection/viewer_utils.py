@@ -100,7 +100,7 @@ def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
         df = prepare_poly_df_for_saving(poly_data, poly_types, req_level, org_im_shape)
 
         # save the rois
-        df.to_pickle(save_path.replace('.csv','.pkl'))
+        df.to_pickle(save_path.with_suffix('.pkl'))
         df.to_csv(save_path, index = False)
 
         # prepare the cores visual for saving
@@ -112,7 +112,7 @@ def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
         redo_bbox_layer(viewer,rect_list,df['core_name'].tolist())
 
         # get a screenshot of the viewer
-        screenshot_path = save_path.replace('.csv', '_screenshot.png')
+        screenshot_path = save_path.with_suffix('.png')
         # reset zoom
         viewer.reset_view()
         viewer.screenshot(screenshot_path, canvas_only=True)

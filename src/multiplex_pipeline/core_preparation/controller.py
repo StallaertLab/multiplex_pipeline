@@ -27,6 +27,7 @@ class CorePreparationController:
         margin: int = 0,
         mask_value: int = 0,
         max_pyramid_levels: int = 3,
+        chunk_size: tuple[int, int, int] = (1, 256, 256),
         core_cleanup_enabled: bool = True,
     ) -> None:
         """Initialize the controller.
@@ -42,6 +43,8 @@ class CorePreparationController:
             margin (int, optional): Pixels of padding around each core.
             mask_value (int, optional): Fill value for masked regions.
             max_pyramid_levels (int, optional): Number of pyramid levels.
+            chunk_size (tuple[int, int, int], optional): Chunk size for the
+                data storage.
             core_cleanup_enabled (bool, optional): Remove intermediate TIFFs
                 after assembly.
         """
@@ -61,6 +64,7 @@ class CorePreparationController:
             temp_dir=temp_dir,
             output_dir=output_dir,
             max_pyramid_levels=max_pyramid_levels,
+            chunk_size=chunk_size,
             allowed_channels=list(self.image_paths.keys()),
             cleanup=core_cleanup_enabled,
         )

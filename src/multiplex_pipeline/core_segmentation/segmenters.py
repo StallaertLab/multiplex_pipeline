@@ -134,9 +134,18 @@ class InstansegSegmenter(BaseSegmenter):
         else:
             raise ValueError("Input must be a 2D/3D numpy array or a list of 2D arrays.")
 
+        # Call InstanSeg
+        labeled_output, _ = self.model.eval_small_image(image, **self.model_kwargs)
+
+        segm_array = [np.array(x).astype(int) for x in labeled_output[0,:,:,:]]
+
+        print(f"alloc={torch.cuda.memory_allocated()/1e9:.2f} GB | "
+        f"reserved={torch.cuda.memory_reserved()/1e9:.2f} GB")
+
         # Clear CUDA cache (optional, can be disabled by kwarg)
         torch.cuda.empty_cache()
 
-        # Call InstanSeg
-        labeled_output, _ = self.model.eval_small_image(image, **self.model_kwargs)
-        return [np.array(x).astype(int) for x in labeled_output[0,:,:,:]]
+        print(f"alloc={torch.cuda.memory_allocated()/1e9:.2f} GB | "
+        f"reserved={torch.cuda.memory_reserved()/1e9:.2f} GB")
+        
+        return segm_array

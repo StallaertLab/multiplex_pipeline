@@ -16,6 +16,7 @@ class CoreAssembler:
         output_dir: str,
         max_pyramid_levels: int = 4,
         downscale: int = 2,
+        chunk_size: tuple[int, int, int] = (1, 256, 256), # SpatialData default chunk size
         allowed_channels: list[str] | None = None,
         cleanup: bool = False,
     ) -> None:
@@ -34,6 +35,7 @@ class CoreAssembler:
         self.temp_dir = temp_dir
         self.output_dir = output_dir
         self.max_pyramid_levels = max_pyramid_levels
+        self.chunk_size = chunk_size
         self.downscale = downscale
         self.allowed_channels = allowed_channels
         self.cleanup = cleanup
@@ -91,6 +93,7 @@ class CoreAssembler:
                 np.expand_dims(base_img, axis=0),
                 dims=("c", "y", "x"),
                 scale_factors=[2] * (self.max_pyramid_levels - 1),
+                chunks=self.chunk_size
             )
 
             images[channel_name] = image_model

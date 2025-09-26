@@ -41,6 +41,25 @@ def load_analysis_settings(settings_path):
     """
     with open(settings_path, 'r') as file:
         settings = yaml.safe_load(file)
+
+    # Define defaults relative to analysis_dir
+    analysis_dir = Path(settings['analysis_dir'])
+    defaults = {
+        "core_info_file_path": analysis_dir / "cores.csv",
+        "cores_dir_tif": analysis_dir / "temp",
+        "cores_dir_output": analysis_dir / "cores",
+        "log_dir": analysis_dir / "logs",
+        "temp_dir": analysis_dir / "temp"
+    }
+
+    # Fill in defaults + normalize to Path
+    for key, default in defaults.items():
+        settings[key] = Path(settings.get(key) or default)
+
+    for path in [analysis_dir, settings["cores_dir_tif"], settings["cores_dir_output"], settings["log_dir"],
+                    settings["temp_dir"], settings["core_info_file_path"].parent]:
+        os.makedirs(path, exist_ok=True)
+
     return settings
 
 def change_to_wsl_path(path):

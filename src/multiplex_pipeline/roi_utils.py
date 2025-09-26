@@ -262,8 +262,8 @@ def read_in_saved_rois(save_path, IM_LEVEL):
     '''
     Read in the saved rois from the given path.
     '''
-    if os.path.exists(save_path.replace('.csv','.pkl')):
-        df = pkl.load(open(save_path.replace('.csv','.pkl'),'rb'))
+    if os.path.exists(save_path.with_suffix('.pkl')):
+        df = pkl.load(open(save_path.with_suffix('.pkl'),'rb'))
         rect_list = get_visual_rectangles(df, IM_LEVEL)
         poly_list = [(x/(2**IM_LEVEL)).astype('int') for x in df.polygon_vertices.to_list()]
         return rect_list, poly_list, df

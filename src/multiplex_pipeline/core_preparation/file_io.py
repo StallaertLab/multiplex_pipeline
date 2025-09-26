@@ -255,7 +255,7 @@ def list_globus_files(gc: GlobusConfig, path: str) -> list[str]:
     """
 
     tc = create_globus_tc(gc.client_id, gc.transfer_tokens)
-    listing = tc.operation_ls(gc.r_collection_id, path=path)
+    listing = tc.operation_ls(gc.r_collection_id, path=str(path))
 
     files = []
     for entry in listing:

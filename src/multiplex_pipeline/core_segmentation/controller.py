@@ -18,28 +18,28 @@ class SegmentationController:
         resolution_level: int = 0,
         pyramid_levels: int = 3,
         downscale: int = 2,
-        cleaner: Optional[object] = None
+        cleaner: Optional[object] = None,
+        overwrite_mask: bool = False
     ):
         self.segmenter = segmenter
         self.resolution_level = resolution_level
         self.pyramid_levels = pyramid_levels
         self.downscale = downscale
         self.cleaner = cleaner
+        self.overwrite_mask = overwrite_mask
+        
         logger.info(
             f"Initialized SegmentationController with segmenter={segmenter}, "
             f"resolution_level={resolution_level}, pyramid_levels={pyramid_levels}, downscale={downscale}, "
-            f"cleaner={cleaner}"
+            f"cleaner={cleaner} and overwrite_mask={overwrite_mask}"
         )
 
-    def segment_spatial_data(
+    def run(
         self,
-        sdata_path: Path,
+        sdata: sd.SpatialData,
         channels: List[str],
         mask_name: Union[str, List[str]] = "mask",
     ) -> None:
-        sdata = sd.read_zarr(sdata_path)
-        
-        sdata = sd.read_zarr(sdata_path)
 
         # Validate requested channels exist
         missing = [ch for ch in channels if ch not in sdata.images]
@@ -90,10 +90,16 @@ class SegmentationController:
         # Check for existing mask names
         for name in mask_names:
             if name in sdata:
-                logger.error(f"Mask name '{name}' already exists in sdata. Please provide unique mask names.")
-                raise ValueError(
-                    f"Mask name '{name}' already exists in sdata. Please provide unique mask names."
-                )
+                if not self.overwrite_mask:
+                    logger.error(f"Mask name '{name}' already exists in sdata. Please provide unique mask names.")
+                    raise ValueError(
+                        f"Mask name '{name}' already exists in sdata. Please provide unique mask names."
+                    )
+                else:
+                    logger.warning(f"Mask name '{name}' already exists and will be overwritten.")
+                    del sdata[name]
+                    sdata.delete_element_from_disk(name)
+                    logger.info(f"Existing mask '{name}' deleted from sdata.")
 
         # Process and save each mask
         for mask, name in zip(masks, mask_names):
@@ -111,7 +117,7 @@ class SegmentationController:
             try:
                 sdata[name] = mask_model
                 sdata.write_element(name)
-                logger.success(f"Segmentation complete. Mask '{name}' written to {sdata_path}")
+                logger.success(f"Segmentation complete. Mask '{name}' written to {sdata.path}")
             except Exception as e:
                 logger.error(f"Failed to write mask '{name}': {e}")
                 raise

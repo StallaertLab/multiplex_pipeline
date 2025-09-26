@@ -3,6 +3,7 @@ import pandas as pd
 import anndata as ad
 from skimage.measure import regionprops_table
 import spatialdata as sd
+from spatialdata.models import TableModel
 from typing import Dict, List, Optional, Sequence
 from multiplex_pipeline.im_utils import calculate_median
 from functools import reduce
@@ -11,39 +12,38 @@ from loguru import logger
 class QuantificationController:
     def __init__(
         self,
-        spatial_data,
         mask_keys: Dict[str, str],  # e.g. {'cell': 'cell_mask', 'nuc': 'nucleus_mask'}
         table_name: str = 'quantification',
         channels: Optional[List[str]] = None,
-        derivative_components: Optional[Sequence[str]] = None,  # e.g. ('cell_mask', 'nucleus_mask')
-        derivative_mask_name: str = 'cyto',
-    ):
+        cytoplasm_components: Optional[Sequence[str]] = None,  # e.g. ('cell_mask', 'nucleus_mask')
+        cytoplasm_mask_name: str = 'cyto',
+    ) -> None:
         """
         mask_keys: dict mapping mask suffix (e.g. 'cell') to sdata.labels key (e.g. 'cell_mask')
         channels: list of channels to quantify
-        derivative_components: tuple/list of two sdata.labels keys for mask subtraction
-        derivative_mask_name: the suffix to use for the derivative mask in outputs (default: 'cyto')
+        cytoplasm_components: tuple/list of two sdata.labels keys for mask subtraction
+        cytoplasm_mask_name: the suffix to use for the cytoplasm mask in outputs (default: 'cyto')
         """
-        self.sdata = spatial_data
+
         self.mask_keys = mask_keys.copy()
-        self.channels = channels or list(spatial_data.images.keys())
-        self.derivative_components = derivative_components
-        self.derivative_mask_name = derivative_mask_name
+        self.channels = channels 
+        self.cytoplasm_components = cytoplasm_components
+        self.cytoplasm_mask_name = cytoplasm_mask_name
         self.table_name = table_name
 
     def prepare_masks(self):
         # Load all user-requested masks
         self.masks = {suffix: self.get_mask(mask_key) for suffix, mask_key in self.mask_keys.items()}
-        # Optionally create derivative mask from two provided label keys
-        if self.derivative_components:
-            if len(self.derivative_components) != 2:
-                raise ValueError("derivative_components must have exactly two SpatialData label keys")
-            key_a, key_b = self.derivative_components
+        # Optionally create cytoplasm mask from two provided label keys
+        if self.cytoplasm_components:
+            if len(self.cytoplasm_components) != 2:
+                raise ValueError("Cytoplasm_components must have exactly two SpatialData label keys")
+            key_a, key_b = self.cytoplasm_components
             mask_a = self.get_mask(key_a)
             mask_b = self.get_mask(key_b)
-            derivative_mask = np.where((mask_a > 0) & (mask_b == 0), mask_a, 0)
-            self.masks[self.derivative_mask_name] = derivative_mask
-            logger.info(f"Derivative mask '{self.derivative_mask_name}' created as {key_a} minus {key_b}.")
+            cytoplasm_mask = np.where((mask_a > 0) & (mask_b == 0), mask_a, 0)
+            self.masks[self.cytoplasm_mask_name] = cytoplasm_mask
+            logger.info(f"Cytoplasm mask '{self.cytoplasm_mask_name}' created as {key_a} minus {key_b}.")
 
     def get_mask(self, mask_key: str) -> np.ndarray:
         mask = np.array(sd.get_pyramid_levels(self.sdata[mask_key], n=0)).squeeze()
@@ -60,13 +60,26 @@ class QuantificationController:
 
         return img
     
+    def run(self,
+            spatial_data: sd.SpatialData,
+            ) -> None:
 
-    def run(self) -> ad.AnnData:
-        
+        # set data
+        self.sdata = spatial_data
+        self.channels = self.channels or list(spatial_data.images.keys())
+
+        # prepare masks
         self.prepare_masks()
         logger.info('Prepared masks for quantification.')
-        
-        # Precompute all morphology features per mask 
+
+        # deal with the table of the same name already existing
+        if self.table_name in self.sdata:
+            logger.warning(f"Table '{self.table_name}' already exists in sdata. It will be overwritten.")
+            del self.sdata[self.table_name]
+            self.sdata.delete_element_from_disk(self.table_name)
+            logger.info(f"Deleted existing table '{self.table_name}' from disk.")
+
+        # Precompute all morphology features per mask
         morph_dfs = []
         for mask_suffix, mask in self.masks.items():
             logger.info(f"Quantifying morphology features for mask '{mask_suffix}'")
@@ -88,7 +101,7 @@ class QuantificationController:
                 )
                 df = pd.DataFrame(props)
                 df = df.rename(columns={
-                    c: f"{ch}_{c}_{mask_suffix}" for c in df.columns if c != "label"
+                    c: f"{ch}_{c.replace('mean_intensity', 'mean').replace('calculate_median', 'median')}_{mask_suffix}" for c in df.columns if c != "label"
                 })
                 quant_dfs.append(df.set_index("label"))
 
@@ -99,10 +112,30 @@ class QuantificationController:
         X = quant_df.to_numpy()
         var = pd.DataFrame(index=quant_df.columns)  
 
+        # add for connectivity
+        obs['region'] = 'instanseg_cell'
+        obs['cell'] = obs.index.astype(int)
+
         adata = ad.AnnData(
             X=X,
             obs=obs,
             var=var
+        )
+
+        # connect to the cell layer for napari-spatialdata compatibility
+
+        adata.uns["spatialdata"] = {
+            "region": ["instanseg_cell"],        # the element(s) this table annotates
+            "region_key": "region",         # column in obs that points to the region
+            "instance_key": "cell"   # column in obs that points to the object ID
+        }
+
+        adata = TableModel.parse(
+            adata,
+            region=["instanseg_cell"],
+            region_key="region",      # << name of the column in obs
+            instance_key="cell",     # << name of the column in obs with instance ids
+            overwrite_metadata=True,
         )
 
         try:

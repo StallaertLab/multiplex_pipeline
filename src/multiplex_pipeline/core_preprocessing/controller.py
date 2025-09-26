@@ -10,7 +10,7 @@ from spatialdata.models import Image2DModel
 from typing import List
 
 class PreSegmentationProcessor:
-    def __init__(self, mix="none", denoise=None, normalize=None, output_name=None):
+    def __init__(self, mix=None, denoise=None, normalize=None, output_name=None):
         """
         mix: 'sum', 'mean', or 'none'
         denoise: None or string like 'median'
@@ -22,13 +22,13 @@ class PreSegmentationProcessor:
         self.normalize = normalize
         self.output_name = output_name
 
-    def run(self, sdata: SpatialData, channels: List[str]) -> List[str]:
+    def run(self, sdata: SpatialData, channels: List[str]) -> SpatialData:
         """
         Processes channels and adds result(s) to sdata.images.
-        Returns list of new channel names.
+        Returns the modified sdata.
         """
 
-        if self.mix_mode != "none":
+        if self.mix_mode:
             images = [np.array(sd.get_pyramid_levels(sdata[ch], n = 0)).squeeze() for ch in channels]
             if self.mix_mode == "sum":
                 img = sum(images)
@@ -49,8 +49,9 @@ class PreSegmentationProcessor:
             
             img = self.post_process(img)
             sdata[name] = Image2DModel.parse(img[None], dims=("c", "y", "x"),scale_factors = [2]*(len(sdata[channels[0]].children) - 1))
-            sdata.write_element(name)
+            #sdata.write_element(name)
 
+        return sdata
 
     def run_denoise(self, img):
         
@@ -62,9 +63,9 @@ class PreSegmentationProcessor:
 
         # denoise with Noise2Void
         if self.config.get("denoise") == "Noise2Void":
-
+            # to be implemented
             img = img
-            logger.info("Applied Noise2Void for denoising.")
+            logger.info("Applied Noise2Void for denoising. To be implemented.")
 
         return img
     
@@ -76,7 +77,7 @@ class PreSegmentationProcessor:
                 img_max = np.percentile(img, self.normalize[1])
                 img = (img - img_min) / (img_max - img_min)
                 img = np.clip(img, 0, 1)
-                img = (img * 255).astype(np.uint8)  # Convert to uint8
+                #img = (img * 255).astype(np.uint8)  # Convert to uint8
                 logger.info(f"Applied normalization with percentiles {self.normalize}.")
             else:
                 logger.warning("Normalization requires a list of two percentiles, e.g. [1, 99]. Using default [0, 100].")
