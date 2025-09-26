@@ -1,5 +1,7 @@
 # Core Cutting Configuration
 
+**Work in progress**
+
 Core cutting supports two modes of operation:
 
 * **Local mode**: Input files are available on the local filesystem.
