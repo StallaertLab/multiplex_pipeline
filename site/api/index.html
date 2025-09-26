@@ -878,7 +878,7 @@ include <code>row_start</code>, <code>row_stop</code>, <code>column_start</code>
 
 
 <h2 id="multiplex_pipeline.core_preparation.assembler.CoreAssembler" class="doc doc-heading">
-              <code class="highlight language-python"><span class="n">CoreAssembler</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">max_pyramid_levels</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">downscale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">allowed_channels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+              <code class="highlight language-python"><span class="n">CoreAssembler</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">max_pyramid_levels</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">downscale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">allowed_channels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 </h2>
 
@@ -1173,7 +1173,7 @@ to these channels. If <code>None</code> all channels are used.</p>
 
 
 <h2 id="multiplex_pipeline.core_preparation.controller.CorePreparationController" class="doc doc-heading">
-              <code class="highlight language-python"><span class="n">CorePreparationController</span><span class="p">(</span><span class="n">metadata_df</span><span class="p">,</span> <span class="n">image_paths</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">file_strategy</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mask_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_pyramid_levels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">core_cleanup_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+              <code class="highlight language-python"><span class="n">CorePreparationController</span><span class="p">(</span><span class="n">metadata_df</span><span class="p">,</span> <span class="n">image_paths</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">file_strategy</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mask_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_pyramid_levels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">core_cleanup_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 </h2>
 
@@ -1325,6 +1325,23 @@ image files.</p>
             </td>
             <td>
                   <code>3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chunk_size</code>
+            </td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chunk size for the
+data storage.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(1, 256, 256)</code>
             </td>
           </tr>
           <tr class="doc-section-item">
