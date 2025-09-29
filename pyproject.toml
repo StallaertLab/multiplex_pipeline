@@ -39,7 +39,9 @@ classifiers = [
 segmentation-gpu = [
     "cellpose>=4.0",
     "imagecodecs>=2024.6.1",
-    "imageio>=2.31", 
+    "imageio>=2.31",
+    "fastremap>=1.16",
+    "fill-voids>=2.1", 
     "instanseg",
     "torch",
 ]
