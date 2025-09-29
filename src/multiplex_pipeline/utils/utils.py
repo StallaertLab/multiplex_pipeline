@@ -2,9 +2,8 @@
 
 import os
 import platform
-from pathlib import Path
-
 import yaml
+from pathlib import Path
 
 
 def load_workstation_config(config_path=None):
