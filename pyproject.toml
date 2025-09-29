@@ -16,7 +16,7 @@ dependencies = [
     "dask[array]",
     "globus-sdk",
     "loguru",
-    "numpy",
+    "numpy>=2.0",
     "opencv-python",
     "pandas",
     "pyyaml",
@@ -24,8 +24,8 @@ dependencies = [
     "scikit-image",
     "scipy",
     "shapely",
-    "spatialdata",
-    "tifffile",
+    "spatialdata>=0.4",
+    "tifffile>=2025.1.10",
     "zarr",
 ]
 classifiers = [
@@ -36,7 +36,7 @@ classifiers = [
 
 [project.optional-dependencies]
 segmentation-gpu = [
-    "cellpose",
+    "cellpose>=4.0",
     "instanseg",
     "torch",
 ]
