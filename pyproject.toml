@@ -17,7 +17,7 @@ dependencies = [
     "globus-sdk",
     "loguru",
     "numpy>=2.0",
-    "opencv-python",
+    "opencv-python>=4.11",
     "pandas",
     "pyyaml",
     "requests",
@@ -26,7 +26,8 @@ dependencies = [
     "shapely",
     "spatialdata>=0.4",
     "tifffile>=2025.1.10",
-    "zarr",
+    "zarr>=2.18.7",
+    "fsspec>=2024.6.1", 
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
