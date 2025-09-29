@@ -13,7 +13,7 @@ authors = [
 ]
 dependencies = [
     "anndata",
-    "dask[array]",
+    "dask[array]>=2024.4",
     "globus-sdk",
     "loguru",
     "numpy>=2.0",
@@ -37,6 +37,8 @@ classifiers = [
 [project.optional-dependencies]
 segmentation-gpu = [
     "cellpose>=4.0",
+    "imagecodecs>=2024.6.1",
+    "imageio>=2.31", 
     "instanseg",
     "torch",
 ]
