@@ -16,7 +16,7 @@ dependencies = [
     "dask[array]",
     "globus-sdk",
     "loguru",
-    "numpy>=2",
+    "numpy",
     "opencv-python",
     "pandas",
     "pyyaml",
