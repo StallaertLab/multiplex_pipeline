@@ -2,11 +2,11 @@
 
 # Configuration for different workstations
 workstations:
-  
+
   WORKSTATION_NAME_1: # host name of the workstation (what platform.node() returns)
     model_path: "" # path to the SAM2 model
     sam2_env: "" # path to the SAM2 environment
 
-  WORKSTATION_NAME_2: 
+  WORKSTATION_NAME_2:
     model_path: ""
     sam2_env: ""

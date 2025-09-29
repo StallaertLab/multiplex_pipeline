@@ -75,7 +75,6 @@ def scan_channels_from_list(
         channel_name = f"{round_num:03d}_{marker}"
         image_dict[channel_name] = filepath
 
-
     # sort the discovered channels
     image_dict = dict(sorted(image_dict.items()))
 
@@ -83,9 +82,8 @@ def scan_channels_from_list(
         raise ValueError("No valid .0.4 OME-TIFF files found.")
 
     logger.info(f"Discovered {len(image_dict)} channels:")
-    for key,val in image_dict.items():
+    for key, val in image_dict.items():
         logger.info(f"{key} <- {val}")
-
 
     grouped = {}
     for ch in image_dict:
@@ -124,21 +122,22 @@ def scan_channels_from_list(
         for m in use_markers:
             if m not in result:
                 logger.warning(f"Requested use_marker '{m}' not found.")
-        
+
         result = {
             base: path for base, path in result.items() if base in use_markers
         }
         logger.info(f"Restricting to use_markers = {use_markers}")
         logger.info(f"Final filtered channels: {list(result.keys())}")
 
-    
     if ignore_markers:
         for m in ignore_markers:
             if m not in result:
                 logger.warning(f"Requested ignore_marker '{m}' not found.")
-        
+
         result = {
-            base: path for base, path in result.items() if base not in ignore_markers
+            base: path
+            for base, path in result.items()
+            if base not in ignore_markers
         }
         logger.info(f"Ignoring markers = {ignore_markers}")
         logger.info(f"Final filtered channels: {list(result.keys())}")
@@ -151,11 +150,14 @@ def scan_channels_from_list(
     for ch in sorted(result, key=str.casefold):
         logger.info(f"  Channel: {ch} <- {result[ch]}")
 
-    logger.info(f"OME-TIFF files not used in final channel selection {len(unused)}:")
-    for ch,file in sorted(unused.items()):
+    logger.info(
+        f"OME-TIFF files not used in final channel selection {len(unused)}:"
+    )
+    for ch, file in sorted(unused.items()):
         logger.info(f"  Unused: Channel {ch} <- {file}")
 
     return result
+
 
 def discover_channels(
     image_dir_or_path: str,
@@ -186,6 +188,7 @@ def discover_channels(
     return scan_channels_from_list(
         files, include_channels, exclude_channels, use_markers, ignore_markers
     )
+
 
 def build_transfer_map(
     remote_paths: dict[str, str],

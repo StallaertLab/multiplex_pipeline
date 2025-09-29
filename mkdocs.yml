@@ -23,4 +23,3 @@ plugins:
             show_source: false
             extra:
               show_symbol_type: true
-            

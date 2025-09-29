@@ -1,8 +1,9 @@
-import numpy as np
 import cv2
+import numpy as np
+from skimage.measure import label, regionprops
+from skimage.morphology import closing, disk, opening
 from skimage.transform import resize
-from skimage.measure import regionprops, label
-from skimage.morphology import closing, opening, disk
+
 
 class BaseCleaner:
     def run(self, mask: np.ndarray) -> np.ndarray:
@@ -14,7 +15,9 @@ class BaseCleaner:
         return self.clean_with_mask(mask)
 
     def calculate_cleaning_mask(self, labeled_mask: np.ndarray) -> np.ndarray:
-        raise NotImplementedError("Cleaners must implement the calculate_cleaning_mask() method.")
+        raise NotImplementedError(
+            "Cleaners must implement the calculate_cleaning_mask() method."
+        )
 
     def clean_with_mask(self, labeled_mask: np.ndarray) -> np.ndarray:
         """
@@ -28,10 +31,15 @@ class BaseCleaner:
                     cleaned_mask[coords[:, 0], coords[:, 1]] = region.label
             return cleaned_mask
         else:
-            raise RuntimeError("No cleaning mask available. Please run calculate_cleaning_mask() first.")
+            raise RuntimeError(
+                "No cleaning mask available. Please run calculate_cleaning_mask() first."
+            )
+
 
 class DbscanEllipseCleaner(BaseCleaner):
-    def __init__(self, target_shape=(1000, 1000), cluster_eps=5, min_samples=20):
+    def __init__(
+        self, target_shape=(1000, 1000), cluster_eps=5, min_samples=20
+    ):
         """
         Args:
             target_shape: Shape (height, width) for resizing masks during ellipse fitting.
@@ -49,18 +57,24 @@ class DbscanEllipseCleaner(BaseCleaner):
         Fit an ellipse robustly to (xs, ys) using DBSCAN, convex hull, and cv2.fitEllipse.
         Returns (cx, cy, major, minor, angle) in resized coordinates.
         """
-        from sklearn.cluster import DBSCAN
         from scipy.spatial import ConvexHull
+        from sklearn.cluster import DBSCAN
 
         coords = np.column_stack((xs, ys))
-        clustering = DBSCAN(eps=self.cluster_eps, min_samples=self.min_samples).fit(coords)
-        labels, counts = np.unique(clustering.labels_[clustering.labels_ >= 0], return_counts=True)
+        clustering = DBSCAN(
+            eps=self.cluster_eps, min_samples=self.min_samples
+        ).fit(coords)
+        labels, counts = np.unique(
+            clustering.labels_[clustering.labels_ >= 0], return_counts=True
+        )
         if len(counts) == 0:
             raise RuntimeError("No dense core cluster found!")
         main_label = labels[np.argmax(counts)]
         core_points = coords[clustering.labels_ == main_label]
         if len(core_points) < 5:
-            raise RuntimeError("Not enough points in main cluster to fit an ellipse.")
+            raise RuntimeError(
+                "Not enough points in main cluster to fit an ellipse."
+            )
         hull = ConvexHull(core_points)
         hull_points = core_points[hull.vertices]
         if len(hull_points) >= 5:
@@ -70,17 +84,26 @@ class DbscanEllipseCleaner(BaseCleaner):
         else:
             raise RuntimeError("Not enough points on hull to fit ellipse.")
 
-    def ellipse_mask(self, shape: tuple, cx: float, cy: float, major: float, minor: float, angle: float) -> np.ndarray:
+    def ellipse_mask(
+        self,
+        shape: tuple,
+        cx: float,
+        cy: float,
+        major: float,
+        minor: float,
+        angle: float,
+    ) -> np.ndarray:
         """
         Generate a boolean mask of an ellipse with given params in the given shape.
         """
-        Y, X = np.ogrid[:shape[0], :shape[1]]
+        Y, X = np.ogrid[: shape[0], : shape[1]]
         cos_a = np.cos(np.deg2rad(angle))
         sin_a = np.sin(np.deg2rad(angle))
         x_shift = X - cx
         y_shift = Y - cy
-        ellipse_eq = (((x_shift * cos_a + y_shift * sin_a)**2) / (major/2)**2 +
-                      ((-x_shift * sin_a + y_shift * cos_a)**2) / (minor/2)**2)
+        ellipse_eq = ((x_shift * cos_a + y_shift * sin_a) ** 2) / (
+            major / 2
+        ) ** 2 + ((-x_shift * sin_a + y_shift * cos_a) ** 2) / (minor / 2) ** 2
         return ellipse_eq <= 1
 
     def calculate_cleaning_mask(self, labeled_mask: np.ndarray) -> np.ndarray:
@@ -93,12 +116,30 @@ class DbscanEllipseCleaner(BaseCleaner):
         orig_shape = labeled_mask.shape
 
         # Downsample mask for ellipse detection
-        resized_mask = resize(labeled_mask.astype(int), self.target_shape, order=0, preserve_range=True) > 0
+        resized_mask = (
+            resize(
+                labeled_mask.astype(int),
+                self.target_shape,
+                order=0,
+                preserve_range=True,
+            )
+            > 0
+        )
 
         ys, xs = np.nonzero(resized_mask)
         cx, cy, major, minor, angle = self.fit_ellipse(xs, ys)
-        ellipse_small = self.ellipse_mask(self.target_shape, cx, cy, major, minor, angle)
-        ellipse_mask_orig = resize(ellipse_small.astype(float), orig_shape, order=0, preserve_range=True) > 0
+        ellipse_small = self.ellipse_mask(
+            self.target_shape, cx, cy, major, minor, angle
+        )
+        ellipse_mask_orig = (
+            resize(
+                ellipse_small.astype(float),
+                orig_shape,
+                order=0,
+                preserve_range=True,
+            )
+            > 0
+        )
 
         # Store for inspection/QC if needed
         self.last_ellipse_params = (
@@ -109,7 +150,6 @@ class DbscanEllipseCleaner(BaseCleaner):
             angle,
         )
         self.cleaning_mask = ellipse_mask_orig
-
 
 
 class BlobCleaner(BaseCleaner):
@@ -139,7 +179,15 @@ class BlobCleaner(BaseCleaner):
         labeled_mask = label(mask > 0)
 
         # Downsample mask for robust morphological cleaning
-        resized_mask = resize(labeled_mask.astype(int), self.target_shape, order=1, preserve_range=True) > 0
+        resized_mask = (
+            resize(
+                labeled_mask.astype(int),
+                self.target_shape,
+                order=1,
+                preserve_range=True,
+            )
+            > 0
+        )
 
         # Morphological opening & closing
         selem = disk(self.morph_radius)
@@ -147,5 +195,13 @@ class BlobCleaner(BaseCleaner):
         clean_mask = closing(clean_mask, selem)
 
         # Upsample to original shape
-        cleaning_mask = resize(clean_mask.astype(float), orig_shape, order=1, preserve_range=True) > 0
+        cleaning_mask = (
+            resize(
+                clean_mask.astype(float),
+                orig_shape,
+                order=1,
+                preserve_range=True,
+            )
+            > 0
+        )
         self.cleaning_mask = cleaning_mask

@@ -83,3 +83,6 @@ data/results/
 *.backup
 *.orig
 *.save
+
+# test notebooks
+**/sandbox.ipynb

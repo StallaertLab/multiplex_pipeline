@@ -100,4 +100,5 @@ exclude = [
     "venv",
     "*vendored*",
     "*_vendor*",
+    "*.ipynb",
 ]

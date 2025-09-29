@@ -1,11 +1,16 @@
 """Napari viewer helpers for displaying and saving ROI layers."""
 
+import napari
 from qtpy.QtWidgets import QFileDialog
 
-from multiplex_pipeline.roi_utils import read_in_saved_rois, prepare_poly_df_for_saving, get_visual_rectangles
+from multiplex_pipeline.roi_utils import (
+    get_visual_rectangles,
+    prepare_poly_df_for_saving,
+    read_in_saved_rois,
+)
 
 
-def redo_cores_layer(viewer, data=[], shape_type="polygon"):
+def redo_cores_layer(viewer, data=None, shape_type="polygon"):
     """Create or replace the ``cores`` layer in a viewer.
 
     Args:
@@ -20,6 +25,10 @@ def redo_cores_layer(viewer, data=[], shape_type="polygon"):
     if "cores" in viewer.layers:
         viewer.layers.remove("cores")
 
+    # initialize data if None
+    if data is None:
+        data = []
+
     viewer.add_shapes(
         data,
         shape_type=shape_type,
@@ -28,14 +37,21 @@ def redo_cores_layer(viewer, data=[], shape_type="polygon"):
         edge_width=2,
         name="cores",
     )
-    
-def redo_bbox_layer(viewer, data=[], text=[]):
+
+
+def redo_bbox_layer(
+    viewer: napari.Viewer,
+    data: list[list[float]],
+    text: list[str],
+) -> None:
     """Create or replace the ``bounding_boxes`` layer in a viewer.
 
     Args:
         viewer (napari.Viewer): Viewer instance to update.
-        data (list, optional): Rectangle coordinates. Defaults to ``[]``.
-        text (list, optional): Labels shown next to rectangles. Defaults to ``[]``.
+        data (list[list[float]], optional): Rectangle coordinates.
+            Defaults to an empty list.
+        text (list[str], optional): Labels shown next to rectangles.
+            Defaults to an empty list.
 
     Returns:
         None
@@ -51,8 +67,14 @@ def redo_bbox_layer(viewer, data=[], text=[]):
         face_color="transparent",
         edge_width=2,
         name="bounding_boxes",
-        text={"string": text, "size": 12, "color": "red", "anchor": "upper_left"},
+        text={
+            "string": text,
+            "size": 12,
+            "color": "red",
+            "anchor": "upper_left",
+        },
     )
+
 
 def display_saved_rois(viewer, IM_LEVEL, save_path=None):
     """Load ROI annotations from disk and show them in the viewer.
@@ -65,13 +87,14 @@ def display_saved_rois(viewer, IM_LEVEL, save_path=None):
     Returns:
         None
     """
-    rect_list, poly_list, df = read_in_saved_rois(save_path, IM_LEVEL = IM_LEVEL)
-    
+    rect_list, poly_list, df = read_in_saved_rois(save_path, IM_LEVEL=IM_LEVEL)
+
     if len(rect_list) > 0:
-        redo_bbox_layer(viewer,rect_list,df['core_name'].tolist())
-        redo_cores_layer(viewer,poly_list,shape_type = df.poly_type.to_list())
+        redo_bbox_layer(viewer, rect_list, df["core_name"].tolist())
+        redo_cores_layer(viewer, poly_list, shape_type=df.poly_type.to_list())
     else:
-        viewer.status = 'No previous rois found!'
+        viewer.status = "No previous rois found!"
+
 
 def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
     """Save ROIs drawn in the viewer to disk and update the displayed layers.
@@ -85,39 +108,46 @@ def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
     Returns:
         None
     """
-    if 'cores' in viewer.layers:
+    if "cores" in viewer.layers:
 
         # get the saving path if not provided
         if save_path is None:
             # open dialog for getting a dir to save csv file
-            save_path = QFileDialog.getSaveFileName(filter = 'CSV file (*.csv)')[0]
+            save_path = QFileDialog.getSaveFileName(filter="CSV file (*.csv)")[
+                0
+            ]
 
         # get the polygon data
-        poly_data = viewer.layers['cores'].data
-        poly_types = viewer.layers['cores'].shape_type
+        poly_data = viewer.layers["cores"].data
+        poly_types = viewer.layers["cores"].shape_type
 
         # prepare df for saving
-        df = prepare_poly_df_for_saving(poly_data, poly_types, req_level, org_im_shape)
+        df = prepare_poly_df_for_saving(
+            poly_data, poly_types, req_level, org_im_shape
+        )
 
         # save the rois
-        df.to_pickle(save_path.with_suffix('.pkl'))
-        df.to_csv(save_path, index = False)
+        df.to_pickle(save_path.with_suffix(".pkl"))
+        df.to_csv(save_path, index=False)
 
         # prepare the cores visual for saving
         rect_list = get_visual_rectangles(df, req_level)
-        poly_list = [(x/(2**(req_level))).astype('int') for x in df.polygon_vertices.to_list()]
+        poly_list = [
+            (x / (2 ** (req_level))).astype("int")
+            for x in df.polygon_vertices.to_list()
+        ]
 
         # change the visualization
-        redo_cores_layer(viewer,poly_list,shape_type = df.poly_type.to_list())
-        redo_bbox_layer(viewer,rect_list,df['core_name'].tolist())
+        redo_cores_layer(viewer, poly_list, shape_type=df.poly_type.to_list())
+        redo_bbox_layer(viewer, rect_list, df["core_name"].tolist())
 
         # get a screenshot of the viewer
-        screenshot_path = save_path.with_suffix('.png')
+        screenshot_path = save_path.with_suffix(".png")
         # reset zoom
         viewer.reset_view()
         viewer.screenshot(screenshot_path, canvas_only=True)
 
-        viewer.status = f'Cores saved to {save_path}'
+        viewer.status = f"Cores saved to {save_path}"
 
     else:
         viewer.status = 'No layer called "cores" found!'

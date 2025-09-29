@@ -1,11 +1,13 @@
-import yaml
 from pathlib import Path
-from argparse import Namespace
-from loguru import logger
 from typing import Union
 
+import yaml
+from loguru import logger
 
-def load_config(config_path: Union[str, Path, None], cli_overrides: dict = None) -> dict:
+
+def load_config(
+    config_path: Union[str, Path, None], cli_overrides: dict = None
+) -> dict:
     """
     Load pipeline configuration from YAML if provided, and apply CLI overrides.
 
@@ -25,7 +27,7 @@ def load_config(config_path: Union[str, Path, None], cli_overrides: dict = None)
         config_path = Path(config_path)
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f) or {}
         logger.info(f"Loaded configuration from: {config_path}")
     else:

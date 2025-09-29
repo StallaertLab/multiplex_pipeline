@@ -189,6 +189,7 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         except OSError as exc:
             logger.warning(f"Cleanup failed for {path}: {exc}")
 
+
 class LocalFileStrategy(FileAvailabilityStrategy):
     """Strategy that relies on files already present locally."""
 
@@ -198,6 +199,7 @@ class LocalFileStrategy(FileAvailabilityStrategy):
 
     def cleanup(self, path: Path) -> None:
         """Local files are left untouched."""
+
 
 # Supporting file I/O functions
 def write_temp_tiff(array, core_id: str, channel: str, temp_dir: str):
@@ -213,6 +215,7 @@ def write_temp_tiff(array, core_id: str, channel: str, temp_dir: str):
     os.makedirs(core_path, exist_ok=True)
     fname = os.path.join(core_path, f"{channel}.tiff")
     imwrite(fname, array)
+
 
 def read_ome_tiff(path: str, level_num: int = 0) -> tuple[da.Array, Any]:
     """Load an OME-TIFF as a Dask array.
@@ -231,6 +234,7 @@ def read_ome_tiff(path: str, level_num: int = 0) -> tuple[da.Array, Any]:
 
     return da.from_zarr(group[path]), store
 
+
 def list_local_files(image_dir: Union[str, Path]) -> list[str]:
     """List ``*.ome.tif*`` files within a directory.
 
@@ -242,6 +246,7 @@ def list_local_files(image_dir: Union[str, Path]) -> list[str]:
     """
     image_dir = Path(image_dir)  # Ensures uniform behavior
     return [str(p) for p in image_dir.glob("*.ome.tif*")]
+
 
 def list_globus_files(gc: GlobusConfig, path: str) -> list[str]:
     """List ``*.ome.tif*`` files from a Globus endpoint.
