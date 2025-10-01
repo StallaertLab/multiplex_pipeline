@@ -204,6 +204,20 @@ os.remove(out_win)
 ```
 ### 6. Refine and Visualize Core Suggestions
 
+After SAM2 finishes, you’ll have an initial set of  proposed regions that might represent meaningful cores. However, these raw predictions often include **false positives** 
+This step filters and visualizes them to create a **clean set of ROIs**.
+
+
+#### 
+1. **Load SAM2 output** (`masks.pkl`) — a list of pixel-wise mask proposals
+2. **Filter** the masks using configurable thresholds:  
+   - `min_area` / `max_area` removes fragments or overly large regions  
+   - `min_iou` discards overlapping duplicates  
+   - `min_st`  for consistent detections  
+   - `min_int` keep only high intensity regions  
+3. **Convert** the surviving masks into rectangles or polygons
+4. **Display** them as editable shapes in napari for manual inspection
+
 Filter candidate ROIs by geometric and intensity thresholds:
 
 ```python
