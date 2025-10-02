@@ -55,45 +55,22 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         self.pending = []  # (task_id, local_path, channel)
         self.already_available = set()
         self.cleanup_enabled = cleanup_enabled
-        self._submit_all_transfers()
+        self.submit_all_transfers()
 
-    def _posix_to_windows_path(self, posix_path: str) -> Path:
-        """Convert a Globus POSIX-style path to a Windows path.
-
-        Args:
-            posix_path (str): Path formatted as ``/~/D/...``.
-
-        Returns:
-            pathlib.Path: Equivalent Windows path.
-        """
-        try:
-            parts = PurePosixPath(posix_path).parts
-            if len(parts) >= 3 and parts[1] == "~":
-                drive_letter = parts[2]
-                relative_path = Path(*parts[3:])
-                return Path(f"{drive_letter}:/") / relative_path
-            return Path(posix_path)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                f"Failed to convert {posix_path} to local path: {exc}"
-            )
-            return Path(posix_path)
-
-    def _submit_all_transfers(self) -> None:
+    def submit_all_transfers(self) -> None:
         """Submit transfer tasks for all channels."""
 
         for channel, (remote_path, local_path) in self.transfer_map.items():
-            local_actual_path = self._posix_to_windows_path(local_path)
 
-            if local_actual_path.exists():
+            if Path(local_path).exists():
                 self.already_available.add(channel)
                 logger.info(
-                    f"Skipping transfer for {channel}; file already exists: {local_actual_path}"
+                    f"Skipping transfer for {channel}; file already exists: {local_path}"
                 )
                 continue
 
             task_id = self._submit_transfer(remote_path, local_path)
-            self.pending.append((task_id, local_actual_path, channel))
+            self.pending.append((task_id, local_path, channel))
             logger.info(
                 f"Submitted transfer for {channel} to {local_path} (task_id={task_id})"
             )
@@ -163,13 +140,12 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
 
         # If somehow no task was submitted AND it's not in already_available, check filesystem
         if not found_task:
-            local_path = self._posix_to_windows_path(path)
-            if Path(local_path).exists():
+            if Path(path).exists():
                 self.already_available.add(channel)
                 return True
             else:
                 logger.warning(
-                    f"No transfer task for {channel}, and file not found: {local_path}"
+                    f"No transfer task for {channel}, and file not found: {path}"
                 )
                 return False
 
