@@ -7,24 +7,22 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from multiplex_pipeline.core_preparation.channel_scanner import (
+from multiplex_pipeline.core_cutting.channel_scanner import (
     build_transfer_map,
     discover_channels,
 )
-from multiplex_pipeline.core_preparation.controller import (
+from multiplex_pipeline.core_cutting.controller import (
     CorePreparationController,
 )
-from multiplex_pipeline.core_preparation.file_io import (
+from multiplex_pipeline.core_cutting.file_io import (
     GlobusFileStrategy,
     LocalFileStrategy,
 )
-from multiplex_pipeline.utils.config_loader import load_config
+from multiplex_pipeline.utils.config_loaders import load_analysis_settings
 from multiplex_pipeline.utils.globus_utils import (
     GlobusConfig,
-    create_globus_tc,
+    create_globus_tc
 )
-
-from multiplex_pipeline.utils.utils import load_analysis_settings
 
 
 def configure_logging(settings):
@@ -45,7 +43,10 @@ def parse_args():
     )
 
     parser.add_argument("--exp_config", help="Path to experiment YAML config.", required=True)
+    parser.add_argument("--remote_analysis", help="Use remote analysis directory as base.", default=False)
     parser.add_argument("--globus_config", help="Path to Globus config.")
+    parser.add_argument("--from_collection", help="Key for source collection in Globus config.", default='r_collection_id')
+    parser.add_argument("--to_collection", help="Key for destination collection in Globus config.", default='crcd_collection_id')
 
     return parser.parse_args()
 
@@ -63,8 +64,8 @@ def main():
 
     # setup Globus if requested
     if args.globus_config:
-        
-        gc = GlobusConfig.from_config_files(Path(args.globus_config))
+
+        gc = GlobusConfig.from_config_files(args.globus_config, from_collection = args.from_collection, to_collection = args.to_collection)
         tc = create_globus_tc(gc.client_id, gc.transfer_tokens)
 
     else:

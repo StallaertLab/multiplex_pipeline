@@ -50,8 +50,8 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         self.tc = tc
         self.gc = gc
         self.transfer_map = transfer_map
-        self.source_endpoint = gc.r_collection_id
-        self.destination_endpoint = gc.local_collection_id
+        self.source_endpoint = gc.source_collection_id
+        self.destination_endpoint = gc.destination_collection_id
         self.pending = []  # (task_id, local_path, channel)
         self.already_available = set()
         self.cleanup_enabled = cleanup_enabled
@@ -236,7 +236,7 @@ def list_globus_files(gc: GlobusConfig, path: str) -> list[str]:
     """
 
     tc = create_globus_tc(gc.client_id, gc.transfer_tokens)
-    listing = tc.operation_ls(gc.r_collection_id, path=str(path))
+    listing = tc.operation_ls(gc.source_collection_id, path=str(path))
 
     files = []
     for entry in listing:

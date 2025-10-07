@@ -30,8 +30,7 @@ def load_workstation_config(config_path=None):
             "'workstations' key not found in the configuration file."
         )
 
-
-def load_analysis_settings(settings_path):
+def load_analysis_settings(settings_path, remote_analysis = False):
     """
     Load analysis settings from a YAML file.
 
@@ -44,7 +43,13 @@ def load_analysis_settings(settings_path):
         settings = yaml.safe_load(file)
 
     # Define defaults relative to analysis_dir
-    analysis_dir = Path(settings["analysis_dir"])
+    if remote_analysis:
+        analysis_dir = Path(settings["remote_analysis_dir"])/settings["analysis_name"]
+    else:
+        analysis_dir = Path(settings["local_analysis_dir"])/settings["analysis_name"]
+    
+    settings["analysis_dir"] = analysis_dir
+    
     defaults = {
         "core_info_file_path": analysis_dir / "cores.csv",
         "cores_dir_tif": analysis_dir / "temp",
@@ -68,30 +73,3 @@ def load_analysis_settings(settings_path):
         os.makedirs(path, exist_ok=True)
 
     return settings
-
-
-def change_to_wsl_path(path):
-    """
-    Converts a Windows path to a WSL path and checks if the drive is mounted.
-
-    Args:
-        path (str): The Windows path to convert.
-
-    Returns:
-        str: The WSL path if the drive is mounted, or an error message if not.
-    """
-    if ":" not in path:
-        raise ValueError(
-            "Invalid Windows path. Ensure the path includes a drive letter (e.g., C:\\)."
-        )
-
-    drive_letter = path[0].lower()
-    if not ("a" <= drive_letter <= "z"):
-        raise ValueError(
-            f"Invalid drive letter: '{drive_letter}' in path '{path}'."
-        )
-
-    # Convert to WSL path
-    wsl_path = f"/mnt/{drive_letter}" + path[2:].replace("\\", "/")
-
-    return wsl_path

@@ -9,7 +9,7 @@ from loguru import logger
 from skimage.measure import regionprops_table
 from spatialdata.models import TableModel
 
-from multiplex_pipeline.im_utils import calculate_median
+from src.multiplex_pipeline.utils.im_utils import calculate_median
 
 
 class QuantificationController:

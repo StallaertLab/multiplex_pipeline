@@ -1,4 +1,4 @@
-import json
+import yaml
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -14,46 +14,34 @@ class GlobusConfig:
     """Configuration for Globus client and endpoints."""
 
     client_id: str
-    r_collection_id: str
-    local_collection_id: str
+    source_collection_id: str
+    destination_collection_id: str
     transfer_tokens: Dict
-    https_token: Dict
-    https_server: Dict
 
     @classmethod
-    def from_config_files(cls, config_dir: Path) -> "GlobusConfig":
+    def from_config_files(cls, config_path: str | Path, from_collection: str, to_collection: str) -> "GlobusConfig":
         """Load Globus configuration from JSON files in the specified directory."""
-        try:
-            with open(config_dir / "globus_config.json") as f:
-                config = json.load(f)
-                client_id = config["client_id"]
-                r_collection_id = config["r_collection_id"]
-                local_collection_id = config["local_collection_id"]
+        
+        # check that config exists
+        config_path = Path(config_path)
+        if not config_path.exists():
+            logger.error(f"Configuration file not found.")
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        
 
-            with open(config_dir / "globus_tokens.json") as f:
-                transfer_tokens = json.load(f)
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            client_id = config["gc"]["client_id"]
+            source_collection_id = config["gc"][from_collection]
+            destination_collection_id = config["gc"][to_collection]
+            transfer_tokens = config['transfer_tokens']
 
-            with open(config_dir / "globus_https_tokens.json") as f:
-                https_token = json.load(f)
-
-            with open(config_dir / "globus_https_server.json") as f:
-                https_server = json.load(f)
-
-            return cls(
-                client_id=client_id,
-                r_collection_id=r_collection_id,
-                local_collection_id=local_collection_id,
-                transfer_tokens=transfer_tokens,
-                https_token=https_token,
-                https_server=https_server,
-            )
-        except FileNotFoundError as e:
-            logger.error(f"Configuration file not found: {e}")
-            raise
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in configuration file: {e}")
-            raise
-
+        return cls(
+            client_id=client_id,
+            source_collection_id=source_collection_id,
+            destination_collection_id=destination_collection_id,
+            transfer_tokens=transfer_tokens
+        )
 
 def create_globus_tc(client_id, transfer_tokens):
     """
@@ -79,27 +67,3 @@ def create_globus_tc(client_id, transfer_tokens):
     tc = globus_sdk.TransferClient(authorizer=authorizer)
 
     return tc
-
-
-def get_with_globus_https(file_path, https_server, https_token):
-    """
-    Get a file from a Globus endpoint using a Globus access token.
-    input:
-        file_path: str
-        https_server: str
-        https_token: str # Globus access token
-    output:
-        BytesIO object
-    """
-
-    headers = {
-        "Authorization": f"Bearer {https_token}",
-        "Accept": "application/octet-stream",
-    }
-
-    https_url = f"{https_server}{file_path}"
-
-    response = requests.get(https_url, headers=headers, allow_redirects=True)
-    response.raise_for_status()  # Ensure the request was successful
-
-    return BytesIO(response.content)

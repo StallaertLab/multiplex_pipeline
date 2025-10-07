@@ -4,7 +4,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from multiplex_pipeline.core_preparation.file_io import (
+from multiplex_pipeline.core_cutting.file_io import (
     list_globus_files,
     list_local_files,
 )

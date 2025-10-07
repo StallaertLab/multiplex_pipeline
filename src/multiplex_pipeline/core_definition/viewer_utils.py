@@ -3,7 +3,7 @@
 import napari
 from qtpy.QtWidgets import QFileDialog
 
-from multiplex_pipeline.roi_utils import (
+from multiplex_pipeline.core_definition.roi_utils import (
     get_visual_rectangles,
     prepare_poly_df_for_saving,
     read_in_saved_rois,
