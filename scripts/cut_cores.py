@@ -23,6 +23,7 @@ from multiplex_pipeline.utils.globus_utils import (
     GlobusConfig,
     create_globus_tc
 )
+from src.multiplex_pipeline.utils.file_utils import GlobusPathConverter
 
 
 def configure_logging(settings):
@@ -43,10 +44,11 @@ def parse_args():
     )
 
     parser.add_argument("--exp_config", help="Path to experiment YAML config.", required=True)
-    parser.add_argument("--remote_analysis", help="Use remote analysis directory as base.", default=False)
+    parser.add_argument("--remote_analysis", action="store_true", help="Use remote analysis directory as base.")
     parser.add_argument("--globus_config", help="Path to Globus config.")
     parser.add_argument("--from_collection", help="Key for source collection in Globus config.", default='r_collection_id')
     parser.add_argument("--to_collection", help="Key for destination collection in Globus config.", default='crcd_collection_id')
+    parser.add_argument("--globus_home_setting", help="How to change Windows to Globus paths in yaml.", default='single_drive')
 
     return parser.parse_args()
 
@@ -56,11 +58,14 @@ def main():
     args = parse_args()
 
     # read config file
-    settings = load_analysis_settings(args.exp_config)
+    settings = load_analysis_settings(args.exp_config, remote_analysis=args.remote_analysis)
 
     # setup logging
     configure_logging(settings)
     logger.info("Starting core cutting script.")
+
+    # set image path
+    image_path = Path(settings['image_dir'])
 
     # setup Globus if requested
     if args.globus_config:
@@ -68,12 +73,19 @@ def main():
         gc = GlobusConfig.from_config_files(args.globus_config, from_collection = args.from_collection, to_collection = args.to_collection)
         tc = create_globus_tc(gc.client_id, gc.transfer_tokens)
 
+        # if windows paths change to globus
+        if ":/" in settings['image_dir'] or ":\\" in settings['image_dir']:
+            conv = GlobusPathConverter(layout=args.globus_home_setting)
+            image_path = conv.windows_to_globus(image_path)
+
     else:
         
         gc = None
 
+
+
     # map channels to image paths
-    channel_map = discover_channels(settings['image_dir'], 
+    channel_map = discover_channels(image_path, 
                                 include_channels=settings['include_channels'], 
                                 exclude_channels=settings['exclude_channels'], 
                                 use_markers=settings.get('use_markers'), 
