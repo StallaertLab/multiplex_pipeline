@@ -1,11 +1,13 @@
 import os
+import time
+import random
 from abc import ABC, abstractmethod
 from pathlib import Path, PurePosixPath
 from typing import Any, Union
 
 import dask.array as da
 import zarr
-from globus_sdk import TransferData
+from globus_sdk import TransferData, GlobusAPIError
 from loguru import logger
 from tifffile import imread, imwrite
 
@@ -13,6 +15,11 @@ from multiplex_pipeline.utils.globus_utils import (
     GlobusConfig,
     create_globus_tc,
 )
+
+RETRYABLE_STATUSES = {502, 503, 504}
+MAX_TRIES = 6
+BASE_DELAY = 2.0  # seconds
+MAX_DELAY = 60.0  # seconds
 
 
 class FileAvailabilityStrategy(ABC):
@@ -55,21 +62,33 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         self.pending = []  # (task_id, local_path, channel)
         self.already_available = set()
         self.cleanup_enabled = cleanup_enabled
+        self.failed = []
         self.submit_all_transfers()
 
     def submit_all_transfers(self) -> None:
         """Submit transfer tasks for all channels."""
 
+        # Best-effort endpoint (re)activation (non-fatal if it fails)
+        try:
+            self.tc.endpoint_autoactivate(self.source_endpoint, if_expires_in=3600)
+        except Exception as e:
+            logger.warning(f"Autoactivate source failed (non-fatal): {e}")
+        try:
+            self.tc.endpoint_autoactivate(self.destination_endpoint, if_expires_in=3600)
+        except Exception as e:
+            logger.warning(f"Autoactivate dest failed (non-fatal): {e}")
+
         for channel, (remote_path, local_path) in self.transfer_map.items():
 
-            if Path(local_path).exists():
-                self.already_available.add(channel)
-                logger.info(
-                    f"Skipping transfer for {channel}; file already exists: {local_path}"
-                )
+            try:
+                task_id = self._submit_transfer(remote_path, local_path)
+            except Exception as e:
+                # Make sure one failing submit doesn't kill the whole run
+                msg = f"Submit failed for {channel} ({remote_path} -> {local_path}): {e}"
+                logger.error(msg)
+                self.failed.append(channel)
                 continue
 
-            task_id = self._submit_transfer(remote_path, local_path)
             self.pending.append((task_id, local_path, channel))
             logger.info(
                 f"Submitted transfer for {channel} to {local_path} (task_id={task_id})"
@@ -96,8 +115,49 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
             notify_on_inactive=False,
         )
         transfer_data.add_item(remote_path, local_path)
-        submission_result = self.tc.submit_transfer(transfer_data)
-        return submission_result["task_id"]
+
+        delay = BASE_DELAY
+
+        for attempt in range(1, MAX_TRIES + 1):
+            try:
+                # opportunistic auto-activation before each attempt
+                try:
+                    self.tc.endpoint_autoactivate(self.source_endpoint, if_expires_in=3600)
+                    self.tc.endpoint_autoactivate(self.destination_endpoint, if_expires_in=3600)
+                except Exception:
+                    # non-fatal; the submit itself will surface real auth/activation problems
+                    pass
+
+                submission_result = self.tc.submit_transfer(transfer_data)
+                return submission_result["task_id"]
+
+            except GlobusAPIError as e:
+                # Retry only on transient service/network side errors
+                if e.http_status in RETRYABLE_STATUSES:
+                    sleep_for = delay + random.uniform(0, 0.5 * delay)
+                    logger.warning(
+                        f"[submit retry {attempt}/{MAX_TRIES}] HTTP {e.http_status} "
+                        f"for {remote_path} -> {local_path}; sleeping {sleep_for:.1f}s"
+                    )
+                    time.sleep(sleep_for)
+                    delay = min(delay * 2, MAX_DELAY)
+                    continue
+                # Non-retryable Globus API error: re-raise to caller (caught in submit_all_transfers)
+                raise
+
+            except Exception as e:
+                # Unknown / network hiccup → treat as transient
+                sleep_for = delay + random.uniform(0, 0.5 * delay)
+                logger.warning(
+                    f"[submit retry {attempt}/{MAX_TRIES}] {type(e).__name__}: {e}; "
+                    f"sleeping {sleep_for:.1f}s"
+                )
+                time.sleep(sleep_for)
+                delay = min(delay * 2, MAX_DELAY)
+
+        # Exhausted retries
+        raise RuntimeError(f"Exhausted retries submitting {remote_path} -> {local_path}")
+
 
     def fetch_or_wait(self, channel: str, path: str) -> bool:
         """Check the status of a transfer and wait if necessary.
@@ -130,24 +190,20 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
                 logger.info(f"Transfer for {channel} complete: {local_path}")
                 ready = True
             elif task["status"] == "FAILED":
-                logger.error(
-                    f"Transfer failed for {channel} (task {task_id}): {task.get('nice_status_details')}"
-                )
+                msg = f"Transfer failed for {channel} (task {task_id})."
+                logger.error(msg)
+                self.failed.append(channel)
             else:
                 still_pending.append((task_id, local_path, ch))
 
         self.pending = still_pending
 
-        # If somehow no task was submitted AND it's not in already_available, check filesystem
+        # If no task was submitted 
         if not found_task:
-            if Path(path).exists():
-                self.already_available.add(channel)
-                return True
-            else:
-                logger.warning(
-                    f"No transfer task for {channel}, and file not found: {path}"
-                )
-                return False
+            logger.error(
+                f"Transfer/check for {channel} failed. No task found."
+            )
+            ready = False
 
         return ready
 

@@ -121,6 +121,10 @@ class CorePreparationController:
                 if channel in self.completed_channels:
                     continue
 
+                if channel in self.file_strategy.failed:
+                    raise RuntimeError(f"Channel '{channel}' transfer failed.")
+
+
                 if self.file_strategy.fetch_or_wait(channel, path):
                     self.cut_channel(channel, path)
                     self.file_strategy.cleanup(Path(path))
