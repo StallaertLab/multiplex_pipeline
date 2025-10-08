@@ -23,7 +23,7 @@ from multiplex_pipeline.utils.globus_utils import (
     GlobusConfig,
     create_globus_tc
 )
-from src.multiplex_pipeline.utils.file_utils import GlobusPathConverter
+from multiplex_pipeline.utils.file_utils import GlobusPathConverter
 
 
 def configure_logging(settings):
