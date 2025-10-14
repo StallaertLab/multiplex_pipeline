@@ -21,8 +21,8 @@ class QuantificationController:
         ],  # e.g. {'cell': 'cell_mask', 'nuc': 'nucleus_mask'}
         table_name: str = "quantification",
         connect_to_mask: Optional[str] = None,
-        channels: Optional[List[str]] = None,
-        overwrite_table: bool = True,
+        input: Optional[List[str]] = None,
+        overwrite: bool = False,
     ) -> None:
         """
         mask_keys: dict mapping mask suffix (e.g. 'cell') to sdata.labels key (e.g. 'cell_mask')
@@ -36,9 +36,9 @@ class QuantificationController:
 
         self.mask_keys = mask_keys.copy()
         self.connect_to_mask = connect_to_mask
-        self.channels = channels
+        self.channels = input
         self.table_name = table_name
-        self.overwrite_table = overwrite_table
+        self.overwrite = overwrite
 
     def prepare_masks(self):
         # Load all user-requested masks
@@ -192,6 +192,49 @@ class QuantificationController:
 
         return X, var
 
+    def prepare_to_overwrite(self):
+        
+        if self.table_name in self.sdata:
+            if not self.overwrite:
+                message = f"Table '{self.table_name}' already exists in sdata. Please provide a unique table name."
+                logger.error(message)
+                raise ValueError(message)
+            else:
+                logger.warning(
+                    f"Table '{self.table_name}' already exists and will be overwritten."
+                )
+                del self.sdata[self.table_name]
+                self.sdata.delete_element_from_disk(self.table_name)
+                logger.info(f"Existing table '{self.table_name}' deleted from sdata.")
+
+    def validate_sdata_as_input(self):
+
+        # validate masks
+        for mask in self.mask_keys.values():
+            if mask not in self.sdata.labels.keys():
+                    message = f"Mask '{ch}' not found in sdata. Masks present: {list(self.sdata.labels.keys())}"
+                    logger.error(message)
+                    raise ValueError(message)
+
+        if self.connect_to_mask not in self.sdata.labels.keys():
+            message = f"Cannot connect the table to {self.connect_to_mask}, not present in sdata."
+            logger.error(message)
+            raise ValueError(message)          
+
+
+        # validate channels
+        if self.channels:
+            # check channels exist
+            for ch in self.channels:    
+                if ch not in self.sdata:
+                    message = f"Channel '{ch}' not found in sdata. Channels present: {list(self.sdata.images.keys())}"
+                    logger.error(message)
+                    raise ValueError(message)
+            logger.info(f"Quantifying {len(self.channels)} user-specified channels: {self.channels}.")
+        else:
+            self.channels = list(self.sdata.images.keys())
+            logger.info(f"Channels not specified. Quantifying all existing channels ({len(self.channels)}).")
+            
     def run(
         self,
         spatial_data: sd.SpatialData,
@@ -204,33 +247,11 @@ class QuantificationController:
         # set data
         self.sdata = spatial_data
         
-        # determine channels to quantify
-        if self.channels:
-            # check channels exist
-            for ch in self.channels:    
-                if ch not in spatial_data.images.keys():
-                    logger.error(f"Channel '{ch}' not found in sdata.images keys: {list(spatial_data.images.keys())}")
-                    raise ValueError(f"Channel '{ch}' not found in sdata.images keys: {list(spatial_data.images.keys())}")
-            logger.info(f"Quantifying {len(self.channels)} user-specified channels: {self.channels}.")
-        else:
-            self.channels = list(spatial_data.images.keys())
+        # Validate masks and channels
+        self.validate_sdata_as_input()
 
-        # Check for existing mask names
-        if self.table_name in self.sdata:
-            if not self.overwrite_table:
-                logger.error(
-                    f"Table name '{self.table_name}' already exists in sdata. Please provide unique table names."
-                )
-                raise ValueError(
-                    f"Table name '{self.table_name}' already exists in sdata. Please provide unique table names."
-                )
-            else:
-                logger.warning(
-                    f"Table name '{self.table_name}' already exists and will be overwritten."
-                )
-                del self.sdata[self.table_name]
-                self.sdata.delete_element_from_disk(self.table_name)
-                logger.info(f"Existing table '{self.table_name}' deleted from sdata.")
+        # Handle overwiting
+        self.prepare_to_overwrite()
 
         # prepare masks
         self.prepare_masks()
