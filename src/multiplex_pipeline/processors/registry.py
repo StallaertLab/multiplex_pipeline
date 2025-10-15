@@ -42,5 +42,6 @@ def build_processor(kind: Kind, name: str, **cfg: Any) -> "BaseOp":
     cls = registry_for_kind[name]
     obj = cls(**cfg)
     obj.validate_config(cfg)
+    obj.initialize()
     
     return obj

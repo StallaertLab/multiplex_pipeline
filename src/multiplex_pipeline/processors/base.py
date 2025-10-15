@@ -62,6 +62,10 @@ class BaseOp(ABC):
             )
 
         return in_list, out_list
+    
+    def initialize(self):
+        """Placeholder for additional preparations."""
+        pass
 
     @abstractmethod
     def validate_config(self, cfg: Mapping[str, Any]) -> None:
