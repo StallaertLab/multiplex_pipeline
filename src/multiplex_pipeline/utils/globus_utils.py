@@ -1,11 +1,9 @@
-import yaml
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Dict
 
 import globus_sdk
-import requests
+import yaml
 from loguru import logger
 
 
@@ -19,29 +17,33 @@ class GlobusConfig:
     transfer_tokens: Dict
 
     @classmethod
-    def from_config_files(cls, config_path: str | Path, from_collection: str, to_collection: str) -> "GlobusConfig":
+    def from_config_files(
+        cls, config_path: str | Path, from_collection: str, to_collection: str
+    ) -> "GlobusConfig":
         """Load Globus configuration from JSON files in the specified directory."""
-        
+
         # check that config exists
         config_path = Path(config_path)
         if not config_path.exists():
-            logger.error(f"Configuration file not found.")
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        
+            logger.error("Configuration file not found.")
+            raise FileNotFoundError(
+                f"Configuration file not found: {config_path}"
+            )
 
         with open(config_path) as f:
             config = yaml.safe_load(f)
             client_id = config["gc"]["client_id"]
             source_collection_id = config["gc"][from_collection]
             destination_collection_id = config["gc"][to_collection]
-            transfer_tokens = config['transfer_tokens']
+            transfer_tokens = config["transfer_tokens"]
 
         return cls(
             client_id=client_id,
             source_collection_id=source_collection_id,
             destination_collection_id=destination_collection_id,
-            transfer_tokens=transfer_tokens
+            transfer_tokens=transfer_tokens,
         )
+
 
 def create_globus_tc(client_id, transfer_tokens):
     """

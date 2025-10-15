@@ -28,6 +28,7 @@ class CorePreparationController:
         mask_value: int = 0,
         max_pyramid_levels: int = 3,
         chunk_size: tuple[int, int, int] = (1, 256, 256),
+        downscale = 2,
         core_cleanup_enabled: bool = True,
     ) -> None:
         """Initialize the controller.
@@ -65,6 +66,7 @@ class CorePreparationController:
             output_dir=output_dir,
             max_pyramid_levels=max_pyramid_levels,
             chunk_size=chunk_size,
+            downscale = downscale,
             allowed_channels=list(self.image_paths.keys()),
             cleanup=core_cleanup_enabled,
         )
@@ -105,7 +107,7 @@ class CorePreparationController:
                 self.assembler.assemble_core(core_id)
                 del self.ready_cores[core_id]
 
-    def run(self):
+    def run(self, poll_interval: float = 10.0) -> None:
         """Process all channels and assemble cores.
 
         This method blocks until all channels have been processed and the
@@ -121,11 +123,7 @@ class CorePreparationController:
                 if channel in self.completed_channels:
                     continue
 
-                if channel in self.file_strategy.failed:
-                    raise RuntimeError(f"Channel '{channel}' transfer failed.")
-
-
-                if self.file_strategy.fetch_or_wait(channel, path):
+                if self.file_strategy.is_channel_ready(channel):
                     self.cut_channel(channel, path)
                     self.file_strategy.cleanup(Path(path))
                     self.completed_channels.add(channel)
@@ -138,4 +136,4 @@ class CorePreparationController:
                 logger.info("All channels processed and cores assembled.")
                 break
 
-            time.sleep(10)
+            time.sleep(poll_interval)

@@ -1,16 +1,26 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Dict, Type, Any, Literal, Mapping, Optional, Sequence, List, Tuple
 from enum import Enum
+from typing import (
+    Any,
+    List,
+    Mapping,
+    Sequence,
+    Tuple,
+)
 
 
 class OutputType(str, Enum):
     """Allowed output types for processors."""
+
     IMAGE = "image"
     LABELS = "labels"
 
+
 class BaseOp(ABC):
     """Common parent for all operations."""
+
     kind: str
     type_name: str
     EXPECTED_INPUTS: int | None = 1
@@ -27,17 +37,22 @@ class BaseOp(ABC):
             )
 
     @staticmethod
-    def _normalize_names(names: str | Sequence[str] | None, label: str) -> List[str]:
+    def _normalize_names(
+        names: str | Sequence[str] | None, label: str
+    ) -> List[str]:
         """Return a list of strings; accept 'name' or ['name'] (None -> [])."""
         if names is None:
             return []
         if isinstance(names, str):
             return [names]
-        if isinstance(names, Sequence) and all(isinstance(x, str) for x in names):
+        if isinstance(names, Sequence) and all(
+            isinstance(x, str) for x in names
+        ):
             return list(names)
-        raise TypeError(f"{label} must be a string or a sequence of strings, got {type(names).__name__}.")
-    
-    
+        raise TypeError(
+            f"{label} must be a string or a sequence of strings, got {type(names).__name__}."
+        )
+
     def validate_io(
         self,
         inputs: str | Sequence[str] | None,
@@ -47,25 +62,31 @@ class BaseOp(ABC):
         Normalize and validate I/O names against this class's declared arity.
         Returns (input_names, output_names) as lists of strings.
         """
-        in_list  = self._normalize_names(inputs,  "inputs")
+        in_list = self._normalize_names(inputs, "inputs")
         out_list = self._normalize_names(outputs, "outputs")
 
-        if self.EXPECTED_INPUTS is not None and len(in_list) != self.EXPECTED_INPUTS:
+        if (
+            self.EXPECTED_INPUTS is not None
+            and len(in_list) != self.EXPECTED_INPUTS
+        ):
             raise ValueError(
                 f"{self.__class__.__name__}: expected {self.EXPECTED_INPUTS} input name(s), "
                 f"got {len(in_list)}: {in_list!r}"
             )
-        if self.EXPECTED_OUTPUTS is not None and len(out_list) != self.EXPECTED_OUTPUTS:
+        if (
+            self.EXPECTED_OUTPUTS is not None
+            and len(out_list) != self.EXPECTED_OUTPUTS
+        ):
             raise ValueError(
                 f"{self.__class__.__name__}: expected {self.EXPECTED_OUTPUTS} output name(s), "
                 f"got {len(out_list)}: {out_list!r}"
             )
 
         return in_list, out_list
-    
+
     def initialize(self):
-        """Placeholder for additional preparations."""
-        pass
+        """Optional hook for subclass-specific setup."""
+        return None
 
     @abstractmethod
     def validate_config(self, cfg: Mapping[str, Any]) -> None:

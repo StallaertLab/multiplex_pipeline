@@ -1,13 +1,17 @@
 from __future__ import annotations
-from typing import Any, Callable, Dict, Mapping, Sequence, Type
-from multiplex_pipeline.processors.registry  import register
-from loguru import logger
+
+from typing import Any, Mapping
+
 import numpy as np
-from multiplex_pipeline.processors.base  import BaseOp, OutputType
+from loguru import logger
+
+from multiplex_pipeline.processors.base import BaseOp, OutputType
+from multiplex_pipeline.processors.registry import register
 
 ################################################################################
 # Image Transformers
 ################################################################################
+
 
 @register("image_transformer", "normalize")
 class Normalize(BaseOp):
@@ -15,7 +19,7 @@ class Normalize(BaseOp):
     EXPECTED_INPUTS = 1
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE
-            
+
     def validate_config(self, cfg: Mapping[str, Any]) -> None:
         # If config missing or empty, set defaults and log.
         if not cfg:
@@ -27,22 +31,23 @@ class Normalize(BaseOp):
         low = cfg.get("low")
         high = cfg.get("high")
 
-        # Coerce to floats if possible
-        try:
-            low = float(low)
-            high = float(high)
-        except (TypeError, ValueError):
-            raise ValueError(
-                f"Parameters 'low' and 'high' must be numeric (got low={low}, high={high})."
-            )
+        # Coerce to floats
+        low = float(low)
+        high = float(high)
 
         # Validate numeric range
         if not (0.0 <= low <= 100.0):
-            raise ValueError(f"Parameter 'low' must be between 0 and 100 (got {low}).")
+            raise ValueError(
+                f"Parameter 'low' must be between 0 and 100 (got {low})."
+            )
         if not (0.0 <= high <= 100.0):
-            raise ValueError(f"Parameter 'high' must be between 0 and 100 (got {high}).")
+            raise ValueError(
+                f"Parameter 'high' must be between 0 and 100 (got {high})."
+            )
         if low >= high:
-            raise ValueError(f"'low' must be < 'high' (got low={low}, high={high}).")
+            raise ValueError(
+                f"'low' must be < 'high' (got low={low}, high={high})."
+            )
 
         # Store canonicalized config
         self.cfg = {"low": low, "high": high}
@@ -72,26 +77,35 @@ class Normalize(BaseOp):
 
         logger.info(
             f"Applied normalization (percentiles {low}–{high}) → [{p_low}, {p_high}]",
-            low, high, p_low, p_high,
+            low,
+            high,
+            p_low,
+            p_high,
         )
         return out
-    
+
+
 @register("image_transformer", "denoise_with_median")
 class DenoiseWithMedian(BaseOp):
 
     EXPECTED_INPUTS = 1
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE
-            
+
     def validate_config(self, cfg: Mapping[str, Any]) -> None:
         if not cfg:
-            cfg['disk_radius'] = 3
-            logger.warning(f"No kernel size for denoising with median kernel, using disk_radius = {cfg['disk_radius']}.")
+            cfg["disk_radius"] = 3
+            logger.warning(
+                f"No kernel size for denoising with median kernel, using disk_radius = {cfg['disk_radius']}."
+            )
 
-        if "disk_radius" in cfg and (not isinstance(cfg["disk_radius"], int) or (cfg["disk_radius"] <= 0)):
+        if "disk_radius" in cfg and (
+            not isinstance(cfg["disk_radius"], int)
+            or (cfg["disk_radius"] <= 0)
+        ):
             message = "Parameter 'disk_radius' has to be a positive integer."
             logger.error(message)
-            raise ValueError (message)
+            raise ValueError(message)
 
     def run(self, img):
         # Must be array-like
@@ -101,31 +115,34 @@ class DenoiseWithMedian(BaseOp):
                 f"got {type(img).__name__}."
             )
 
-        from skimage.morphology import disk
         from skimage.filters import median
+        from skimage.morphology import disk
 
-        med = median(img, disk(self.cfg['disk_radius']))
+        med = median(img, disk(self.cfg["disk_radius"]))
 
         return med
-    
+
+
 @register("image_transformer", "mean_of_images")
 class MeanOfImages(BaseOp):
     """Compute the mean of multiple image arrays."""
 
-    EXPECTED_INPUTS = None          # allow any number of inputs
+    EXPECTED_INPUTS = None  # allow any number of inputs
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE  # produces a single averaged image
 
     def validate_config(self, cfg: Mapping[str, Any]) -> None:
         if cfg:
             raise ValueError("MeanOfImages takes no parameters.")
-        
+
     def run(self, *images):
         """Compute elementwise mean over all provided images."""
 
         # --- validation ---
         if len(images) == 0:
-            raise ValueError(f"{self.__class__.__name__}.run() expected at least one image.")
+            raise ValueError(
+                f"{self.__class__.__name__}.run() expected at least one image."
+            )
 
         arrays = []
         for i, img in enumerate(images):
@@ -136,7 +153,9 @@ class MeanOfImages(BaseOp):
                 )
             arr = np.asarray(img)
             if arr.ndim == 0:
-                raise ValueError(f"Input #{i} is scalar; expected image array.")
+                raise ValueError(
+                    f"Input #{i} is scalar; expected image array."
+                )
             arrays.append(arr)
 
         # --- shape consistency ---
@@ -154,4 +173,4 @@ class MeanOfImages(BaseOp):
             f"{self.__class__.__name__}: computed mean of {len(arrays)} images "
             f"with shape {ref_shape}."
         )
-        return mean_img  
+        return mean_img

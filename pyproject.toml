@@ -27,7 +27,7 @@ dependencies = [
     "spatialdata>=0.4",
     "tifffile>=2025.1.10,<2025.5.21",
     "zarr>=2.18.7",
-    "fsspec>=2024.6.1", 
+    "fsspec>=2024.6.1",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -38,7 +38,7 @@ classifiers = [
 [project.optional-dependencies]
 segmentation-gpu = [
     "cellpose>=4.0",
-    "imagecodecs>=2024.6.1", 
+    "imagecodecs>=2024.6.1",
     "instanseg-torch>=0.0.9",
     "torch",
 ]

@@ -5,49 +5,160 @@
 ################################################################################
 
 ######################################################
-# data location
+# general settings
 ######################################################
-image_path: "R:/CellDive/BLCA-1B/BLCA-1B_Final/BLCA-1B_1.0.4_R000_DAPI__FINAL_F.ome.tif"
+image_dir: "R:/CellDive/BLCA-2/BLCA-2_Final"
+analysis_name: "BLCA-2_Analysis_todel"
+local_analysis_dir: "C:/"
+remote_analysis_dir: "/ix1/kkedziora/blca_analysis"
+log_dir: null # => ${analysis_dir}/logs
 
 ######################################################
 # core detection
 ######################################################
-core_info_path: "R:/Wayne/BLCA/BLCA-1B_Analysis/cores.csv"
+detection_image: "BLCA-2_1.0.4_R000_DAPI__FINAL_F.ome.tif"
+core_info_file_path: null # => ${analysis_dir}/cores.csv
 
 ######################################################
 # core cutting
 ######################################################
-temp_dir_cores: "D:/multiplex_pipeline/tests"
-output_dir_cores: "R:/Wayne/BLCA/BLCA-1B_Analysis/temp"
+cores_dir_tif: null # => ${analysis_dir}/cores
+cores_dir_output: null # => ${analysis_dir}/temp
 
-include_channels: []
-exclude_channels: []
-use_channels: []
+include_channels:
+exclude_channels:
+  - "008_ECad"
+use_markers: "DAPI"
+ignore_markers:
+  - "Antibody1"
+  - "TNFa"
+  - "Snail1"
+  - "SKP2"
+  - "ProgRc"
+  - "Plk1"
+  - "PH3"
+  - "PDL1"
+  - "p65"
+  - "p130"
+  - "p-p130"
+  - "p-Cdc6"
+  - "LAG3"
+  - "IL-8"
+  - "HER2"
+  - "ERa"
+  - "EpCAM"
+  - "E2F1"
+  - "cycD3"
+  - "cycB2"
+  - "CDC25C"
+  - "CD86"
+  - "CD73"
+  - "CD69"
+  - "CD62L"
+  - "CD56"
+  - "CD4"
+  - "CD25"
+  - "CD19"
+  - "CD27"
+  - "CCR7"
+  - "cCASP3"
 
-# pre-processing
+######################################################
+# segmentation
+######################################################
 
-# preprocessing:
-#   channels: ["DAPI", "CD3"]
-#   mix: "none"  # options: "sum", "mean", "none"
-#   denoise: "median" # options: "median", "gaussian", "none"
-#   normalize: True # optional, only used when mixing
-#   output_name: "nuclei_input"  # optional, only used when mixing
+additional_elements:
 
-# # segmentation
+# add pre-processed images (category: 'image_transformer')
+  - category: 'image_transformer'
+    type: "normalize"
+    input: "DAPI"
+    output: "DAPI_norm"
+    parameters:
+      low: 1
+      high: 99.5
+    keep: false
 
-# segmentation_nucleus:
-#   segmentation_method: "cellpose"
-#   cellpose_model: "cyto2"
-#   cellpose_diameter: 30
-#   cellpose_flow_threshold: 0.4
-#   cellpose_cellprob_threshold: 0.0
-#   cellpose_mask_threshold: 0.0
-#   cellpose_gpu: True
-#   nuc_channels: ['DAPI']
+# segmentation (category: 'object_segmenter')
+  - category: 'object_segmenter'
+    type: "instanseg"
+    parameters:
+      model: "fluorescence_nuclei_and_cells"
+      pixel_size: 0.3
+      resolve_cell_and_nucleus: true
+      cleanup_fragments: true
+    input:
+      - "DAPI_norm"
+    output:
+      - 'instanseg_nucleus_org'
+      - 'instanseg_cell_org'
+
+# processed masks (category: 'mask_builder')
+  - category: 'mask_builder'
+    type: 'blob'
+    input: 'instanseg_nucleus_org'
+    output: 'blob'
+    keep: true
+#----------------------------------------------
+  - category: 'mask_builder'
+    type: 'multiply'
+    input:
+      - 'instanseg_nucleus_org'
+      - 'blob'
+    output: 'instanseg_nucleus'
+    keep: true
+#----------------------------------------------
+  - category: 'mask_builder'
+    type: 'multiply'
+    input:
+      - 'instanseg_cell_org'
+      - 'blob'
+    output: 'instanseg_cell'
+    keep: true
+#----------------------------------------------
+  - category: 'mask_builder'
+    type: "ring"
+    input:
+        - "instanseg_nucleus"
+    output: "ring"
+    parameters:
+      outer: 8
+      inner: 2
+    keep: true
+#----------------------------------------------
+  - category: 'mask_builder'
+    type: "subtract"
+    input:
+      - "instanseg_cell"
+      - "instanseg_nucleus"
+    output: "cytoplasm"
+    keep: true
+
+######################################################
+# quantification
+######################################################
+
+quant:
+  - name: "instanseg_table"
+    masks:
+      nucleus: 'instanseg_nucleus'
+      cell: 'instanseg_cell'
+      ring: 'ring'
+      cyto: 'cytoplasm'
+    layer_connection: 'instanseg_cell'
 
 ################################################################################
 # advanced settings
 ################################################################################
+
+######################################################
+# core cutting
+######################################################
+
+sdata_storage:
+  chunk_size: [1, 512, 512]
+  max_pyramid_level: 3
+  downscale: 2
 
 ######################################################
 # core detection
@@ -65,9 +176,10 @@ core_detection:
 ######################################################
 # core cutting
 ######################################################
-# margin: 0
-# mask_value: 0
-# max_pyramid_levels: 3
 
-# transfer_cleanup_enabled: True
-# core_cleanup_enabled: True
+core_cutting:
+  margin: 0
+  mask_value: 0
+  max_pyramid_level: 2
+  transfer_cleanup_enabled: True
+  core_cleanup_enabled: True

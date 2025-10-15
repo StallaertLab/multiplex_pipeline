@@ -1,14 +1,23 @@
 import os
-import time
 import random
+import ssl
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path, PurePosixPath
 from typing import Any, Union
 
 import dask.array as da
 import zarr
-from globus_sdk import TransferData, GlobusAPIError
+from globus_sdk import (
+    GlobusAPIError,
+    GlobusConnectionError,
+    GlobusTimeoutError,
+    TransferData,
+)
 from loguru import logger
+from requests.exceptions import (
+    RequestException,  # if requests is available/used
+)
 from tifffile import imread, imwrite
 
 from multiplex_pipeline.utils.globus_utils import (
@@ -26,7 +35,7 @@ class FileAvailabilityStrategy(ABC):
     """Strategy interface for ensuring image files are available."""
 
     @abstractmethod
-    def fetch_or_wait(self, channel: str, path: str) -> bool:
+    def is_channel_ready(self, channel: str, path: str) -> bool:
         """Return ``True`` when the requested file is ready locally."""
 
     @abstractmethod
@@ -62,32 +71,21 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         self.pending = []  # (task_id, local_path, channel)
         self.already_available = set()
         self.cleanup_enabled = cleanup_enabled
-        self.failed = []
         self.submit_all_transfers()
 
     def submit_all_transfers(self) -> None:
         """Submit transfer tasks for all channels."""
 
-        # Best-effort endpoint (re)activation (non-fatal if it fails)
-        try:
-            self.tc.endpoint_autoactivate(self.source_endpoint, if_expires_in=3600)
-        except Exception as e:
-            logger.warning(f"Autoactivate source failed (non-fatal): {e}")
-        try:
-            self.tc.endpoint_autoactivate(self.destination_endpoint, if_expires_in=3600)
-        except Exception as e:
-            logger.warning(f"Autoactivate dest failed (non-fatal): {e}")
-
         for channel, (remote_path, local_path) in self.transfer_map.items():
 
             try:
                 task_id = self._submit_transfer(remote_path, local_path)
-            except Exception as e:
-                # Make sure one failing submit doesn't kill the whole run
-                msg = f"Submit failed for {channel} ({remote_path} -> {local_path}): {e}"
-                logger.error(msg)
-                self.failed.append(channel)
-                continue
+            except (GlobusAPIError, RuntimeError) as e:
+                # Fail immediately
+                raise RuntimeError(
+                    f"Transfer submission failed for {channel} "
+                    f"({remote_path} -> {local_path}): {e}"
+                ) from e
 
             self.pending.append((task_id, local_path, channel))
             logger.info(
@@ -121,91 +119,84 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         for attempt in range(1, MAX_TRIES + 1):
             try:
                 # opportunistic auto-activation before each attempt
-                try:
-                    self.tc.endpoint_autoactivate(self.source_endpoint, if_expires_in=3600)
-                    self.tc.endpoint_autoactivate(self.destination_endpoint, if_expires_in=3600)
-                except Exception:
-                    # non-fatal; the submit itself will surface real auth/activation problems
-                    pass
+                self.tc.endpoint_autoactivate(
+                    self.source_endpoint, if_expires_in=3600
+                )
+                self.tc.endpoint_autoactivate(
+                    self.destination_endpoint, if_expires_in=3600
+                )
 
                 submission_result = self.tc.submit_transfer(transfer_data)
+                
                 return submission_result["task_id"]
 
             except GlobusAPIError as e:
                 # Retry only on transient service/network side errors
                 if e.http_status in RETRYABLE_STATUSES:
-                    sleep_for = delay + random.uniform(0, 0.5 * delay)
-                    logger.warning(
-                        f"[submit retry {attempt}/{MAX_TRIES}] HTTP {e.http_status} "
-                        f"for {remote_path} -> {local_path}; sleeping {sleep_for:.1f}s"
-                    )
-                    time.sleep(sleep_for)
-                    delay = min(delay * 2, MAX_DELAY)
+                    delay = self._sleep_with_backoff(attempt, delay, remote_path, local_path, e)
                     continue
                 # Non-retryable Globus API error: re-raise to caller (caught in submit_all_transfers)
                 raise
 
-            except Exception as e:
+            # ONLY transient, non-API exceptions are retried here
+            except (
+                GlobusConnectionError,
+                GlobusTimeoutError,
+                RequestException,
+                TimeoutError,
+                ConnectionError,
+                ssl.SSLError,
+                OSError,
+            ) as e:
                 # Unknown / network hiccup → treat as transient
-                sleep_for = delay + random.uniform(0, 0.5 * delay)
-                logger.warning(
-                    f"[submit retry {attempt}/{MAX_TRIES}] {type(e).__name__}: {e}; "
-                    f"sleeping {sleep_for:.1f}s"
-                )
-                time.sleep(sleep_for)
-                delay = min(delay * 2, MAX_DELAY)
+                delay = self._sleep_with_backoff(attempt, delay, remote_path, local_path, e)
 
         # Exhausted retries
-        raise RuntimeError(f"Exhausted retries submitting {remote_path} -> {local_path}")
+        message = f"Exhausted retries submitting {remote_path} -> {local_path}"
+        logger.error(message)
+        raise RuntimeError(message)
+
+    def _sleep_with_backoff(self, attempt: int, delay: float, remote_path: str, local_path: str, err: Exception) -> float:
+        """Log, sleep, and compute the next backoff delay."""
+        sleep_for = delay + random.uniform(0, 0.5 * delay)
+        logger.warning(
+            f"[submit retry {attempt}/{MAX_TRIES}] {type(err).__name__}: {err}; "
+            f"{remote_path} -> {local_path}; sleeping {sleep_for:.1f}s"
+        )
+        time.sleep(sleep_for)
+        return min(delay * 2, MAX_DELAY)
 
 
-    def fetch_or_wait(self, channel: str, path: str) -> bool:
-        """Check the status of a transfer and wait if necessary.
+    def is_channel_ready(self, channel: str) -> bool:
+        """Return True when the file for `channel` is ready; False if still pending.
+        Raises on impossible states or hard failures."""
 
-        Args:
-            channel (str): Channel name being fetched.
-            path (str): Local path expected for the file.
-
-        Returns:
-            bool: ``True`` when the file is ready.
-        """
-
-        # Return immediately if we already verified it existed
         if channel in self.already_available:
             return True
 
-        still_pending = []
-        ready = False
-        found_task = False
+        # find the (single) pending task for this channel
+        idx = next((i for i, (_, _, ch) in enumerate(self.pending) if ch == channel), None)
+        if idx is None:
+            # with fail-fast submit, this should never happen
+            raise RuntimeError(f"No pending task for {channel}.")
 
-        for task_id, local_path, ch in self.pending:
-            if ch != channel:
-                still_pending.append((task_id, local_path, ch))
-                continue
+        task_id, local_path, _ = self.pending[idx]
+        task = self.tc.get_task(task_id)
+        status = task["status"]
 
-            found_task = True
-            task = self.tc.get_task(task_id)
+        if status == "SUCCEEDED":
+            self.pending.pop(idx)
+            self.already_available.add(channel)
+            logger.info(f"Transfer for {channel} complete: {local_path}")
+            return True
 
-            if task["status"] == "SUCCEEDED":
-                logger.info(f"Transfer for {channel} complete: {local_path}")
-                ready = True
-            elif task["status"] == "FAILED":
-                msg = f"Transfer failed for {channel} (task {task_id})."
-                logger.error(msg)
-                self.failed.append(channel)
-            else:
-                still_pending.append((task_id, local_path, ch))
+        if status == "FAILED":
+            msg = f"Transfer failed for {channel} (task {task_id})."
+            logger.error(msg)
+            raise RuntimeError(msg)
 
-        self.pending = still_pending
-
-        # If no task was submitted 
-        if not found_task:
-            logger.error(
-                f"Transfer/check for {channel} failed. No task found."
-            )
-            ready = False
-
-        return ready
+        # e.g. ACTIVE, INACTIVE, QUEUED, etc.
+        return False
 
     def cleanup(self, path: Path, force: bool = False) -> None:
         """Remove the specified file if cleanup is enabled."""
@@ -225,7 +216,7 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
 class LocalFileStrategy(FileAvailabilityStrategy):
     """Strategy that relies on files already present locally."""
 
-    def fetch_or_wait(self, channel: str, path: str) -> bool:
+    def is_channel_ready(self, channel: str, path: str) -> bool:
         """Return ``True`` if the file exists locally."""
         return Path(path).exists()
 

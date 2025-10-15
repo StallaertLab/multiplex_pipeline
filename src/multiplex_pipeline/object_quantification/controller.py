@@ -1,7 +1,7 @@
-from functools import reduce
-from typing import Dict, List, Optional, Sequence
-
 import re
+from functools import reduce
+from typing import Dict, List, Optional
+
 import anndata as ad
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ class QuantificationController:
         ],  # e.g. {'cell': 'cell_mask', 'nuc': 'nucleus_mask'}
         table_name: str = "quantification",
         connect_to_mask: Optional[str] = None,
-        input: Optional[List[str]] = None,
+        to_quantify: Optional[List[str]] = None,
         overwrite: bool = False,
     ) -> None:
         """
@@ -36,7 +36,7 @@ class QuantificationController:
 
         self.mask_keys = mask_keys.copy()
         self.connect_to_mask = connect_to_mask
-        self.channels = input
+        self.channels = to_quantify
         self.table_name = table_name
         self.overwrite = overwrite
 
@@ -110,13 +110,15 @@ class QuantificationController:
         """
         Identify columns in the provided list that represent multi-dimensional data.
         """
-        _ndims_regex = re.compile(r'^(?P<base>[^-]+)-(?P<dim>\d+)(?P<suffix>.*)?$') # first '-' is expected to precede dimension number
+        _ndims_regex = re.compile(
+            r"^(?P<base>[^-]+)-(?P<dim>\d+)(?P<suffix>.*)?$"
+        )  # first '-' is expected to precede dimension number
 
         ndims_buckets = {}  # (property:str) -> List[tuple[dim:int, col:str]]
         for col in names:
             m = _ndims_regex.match(col)
             if m:
-                prop = ''.join([m.group("base"),m.group("suffix")])
+                prop = "".join([m.group("base"), m.group("suffix")])
                 dim = int(m.group("dim"))
                 ndims_buckets.setdefault(prop, []).append((dim, col))
 
@@ -137,7 +139,7 @@ class QuantificationController:
                 ndims_buckets[prop] = []
 
         return ndims_buckets
-    
+
     def build_obsm(self, obs, ndims_buckets):
         obsm = {}
         cols_to_drop = []
@@ -145,7 +147,9 @@ class QuantificationController:
 
             # --- Sort by dimension index ---
             dim_cols_sorted = sorted(dim_cols, key=lambda t: t[0])
-            dims_sorted, cols_sorted = zip(*dim_cols_sorted) if dim_cols_sorted else ([], [])
+            dims_sorted, cols_sorted = (
+                zip(*dim_cols_sorted) if dim_cols_sorted else ([], [])
+            )
 
             # --- Build array ---
             arr = np.column_stack([obs[c].to_numpy() for c in cols_sorted])
@@ -179,7 +183,7 @@ class QuantificationController:
                     }
                 )
                 quant_dfs.append(df.set_index("label"))
-        
+
         # create X
         quant_df = reduce(
             lambda left, right: pd.merge(
@@ -193,7 +197,7 @@ class QuantificationController:
         return X, var
 
     def prepare_to_overwrite(self):
-        
+
         if self.table_name in self.sdata:
             if not self.overwrite:
                 message = f"Table '{self.table_name}' already exists in sdata. Please provide a unique table name."
@@ -205,36 +209,41 @@ class QuantificationController:
                 )
                 del self.sdata[self.table_name]
                 self.sdata.delete_element_from_disk(self.table_name)
-                logger.info(f"Existing table '{self.table_name}' deleted from sdata.")
+                logger.info(
+                    f"Existing table '{self.table_name}' deleted from sdata."
+                )
 
     def validate_sdata_as_input(self):
 
         # validate masks
         for mask in self.mask_keys.values():
-            if mask not in self.sdata.labels.keys():
-                    message = f"Mask '{ch}' not found in sdata. Masks present: {list(self.sdata.labels.keys())}"
-                    logger.error(message)
-                    raise ValueError(message)
+            if mask not in self.sdata.labels:
+                message = f"Mask '{mask}' not found in sdata. Masks present: {list(self.sdata.labels)}"
+                logger.error(message)
+                raise ValueError(message)
 
-        if self.connect_to_mask not in self.sdata.labels.keys():
+        if self.connect_to_mask not in self.sdata.labels:
             message = f"Cannot connect the table to {self.connect_to_mask}, not present in sdata."
             logger.error(message)
-            raise ValueError(message)          
-
+            raise ValueError(message)
 
         # validate channels
         if self.channels:
             # check channels exist
-            for ch in self.channels:    
+            for ch in self.channels:
                 if ch not in self.sdata:
-                    message = f"Channel '{ch}' not found in sdata. Channels present: {list(self.sdata.images.keys())}"
+                    message = f"Channel '{ch}' not found in sdata. Channels present: {list(self.sdata.images)}"
                     logger.error(message)
                     raise ValueError(message)
-            logger.info(f"Quantifying {len(self.channels)} user-specified channels: {self.channels}.")
+            logger.info(
+                f"Quantifying {len(self.channels)} user-specified channels: {self.channels}."
+            )
         else:
-            self.channels = list(self.sdata.images.keys())
-            logger.info(f"Channels not specified. Quantifying all existing channels ({len(self.channels)}).")
-            
+            self.channels = list(self.sdata.images)
+            logger.info(
+                f"Channels not specified. Quantifying all existing channels ({len(self.channels)})."
+            )
+
     def run(
         self,
         spatial_data: sd.SpatialData,
@@ -246,7 +255,7 @@ class QuantificationController:
 
         # set data
         self.sdata = spatial_data
-        
+
         # Validate masks and channels
         self.validate_sdata_as_input()
 
@@ -270,7 +279,7 @@ class QuantificationController:
             logger.info(
                 f"Found {len(ndims_buckets)} columns with multiple dimensions: {list(ndims_buckets.keys())}. Creating obsm table."
             )
-            obsm, cols_to_drop = self.build_obsm(obs,ndims_buckets)
+            obsm, cols_to_drop = self.build_obsm(obs, ndims_buckets)
             obs = obs.drop(columns=cols_to_drop)
         else:
             logger.info("No multi-dimensional columns found.")
@@ -299,11 +308,12 @@ class QuantificationController:
 
             # connect to the cell layer for napari-spatialdata compatibility
             adata.uns["spatialdata"] = {
-                "region": [self.connect_to_mask],  # the element(s) this table annotates
+                "region": [
+                    self.connect_to_mask
+                ],  # the element(s) this table annotates
                 "region_key": "region",  # column in obs that points to the region
                 "instance_key": "cell",  # column in obs that points to the object ID
             }
-
 
         adata = TableModel.parse(
             adata,

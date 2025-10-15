@@ -1,6 +1,8 @@
 # tests/test_baseop.py
+from typing import Any, Mapping
+
 import pytest
-from typing import Mapping, Any
+
 from multiplex_pipeline.processors.base import BaseOp
 
 
@@ -108,6 +110,7 @@ def test_repr_includes_kind_type_and_cfg():
     assert "unit_test_kind" in r
     assert "dummy" in r
     assert "alpha" in r
+
 
 def test_str_is_human_friendly():
     op = DummyOp(beta=True)

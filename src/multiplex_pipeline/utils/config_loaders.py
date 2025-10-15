@@ -2,8 +2,9 @@
 
 import os
 import platform
-import yaml
 from pathlib import Path
+
+import yaml
 
 
 def load_workstation_config(config_path=None):
@@ -30,7 +31,8 @@ def load_workstation_config(config_path=None):
             "'workstations' key not found in the configuration file."
         )
 
-def load_analysis_settings(settings_path, remote_analysis = False):
+
+def load_analysis_settings(settings_path, remote_analysis=False):
     """
     Load analysis settings from a YAML file.
 
@@ -44,12 +46,16 @@ def load_analysis_settings(settings_path, remote_analysis = False):
 
     # Define defaults relative to analysis_dir
     if remote_analysis:
-        analysis_dir = Path(settings["remote_analysis_dir"])/settings["analysis_name"]
+        analysis_dir = (
+            Path(settings["remote_analysis_dir"]) / settings["analysis_name"]
+        )
     else:
-        analysis_dir = Path(settings["local_analysis_dir"])/settings["analysis_name"]
-    
+        analysis_dir = (
+            Path(settings["local_analysis_dir"]) / settings["analysis_name"]
+        )
+
     settings["analysis_dir"] = analysis_dir
-    
+
     defaults = {
         "core_info_file_path": analysis_dir / "cores.csv",
         "cores_dir_tif": analysis_dir / "temp",
