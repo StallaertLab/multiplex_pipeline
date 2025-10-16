@@ -59,9 +59,7 @@ class CoreAssembler:
         """
         core_path = os.path.join(self.temp_dir, core_id)
         if not os.path.exists(core_path):
-            raise FileNotFoundError(
-                f"No temp folder found for core: {core_id}"
-            )
+            raise FileNotFoundError(f"No temp folder found for core: {core_id}")
 
         # Collect and sort TIFFs
         channel_files = sorted(
@@ -81,10 +79,7 @@ class CoreAssembler:
             channel_name = os.path.splitext(fname)[0]
 
             # Skip if not in allowed list
-            if (
-                self.allowed_channels
-                and channel_name not in self.allowed_channels
-            ):
+            if self.allowed_channels and channel_name not in self.allowed_channels:
                 continue
 
             full_path = os.path.join(core_path, fname)
@@ -104,9 +99,7 @@ class CoreAssembler:
             used_channels.append(channel_name)
 
         # log the info
-        logger.info(
-            f"Core '{core_id}' assembled with channels: {used_channels}"
-        )
+        logger.info(f"Core '{core_id}' assembled with channels: {used_channels}")
 
         # Construct and write SpatialData
         sdata = SpatialData(images=images)

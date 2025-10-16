@@ -37,17 +37,13 @@ class Normalize(BaseOp):
 
         # Validate numeric range
         if not (0.0 <= low <= 100.0):
-            raise ValueError(
-                f"Parameter 'low' must be between 0 and 100 (got {low})."
-            )
+            raise ValueError(f"Parameter 'low' must be between 0 and 100 (got {low}).")
         if not (0.0 <= high <= 100.0):
             raise ValueError(
                 f"Parameter 'high' must be between 0 and 100 (got {high})."
             )
         if low >= high:
-            raise ValueError(
-                f"'low' must be < 'high' (got low={low}, high={high})."
-            )
+            raise ValueError(f"'low' must be < 'high' (got low={low}, high={high}).")
 
         # Store canonicalized config
         self.cfg = {"low": low, "high": high}
@@ -100,8 +96,7 @@ class DenoiseWithMedian(BaseOp):
             )
 
         if "disk_radius" in cfg and (
-            not isinstance(cfg["disk_radius"], int)
-            or (cfg["disk_radius"] <= 0)
+            not isinstance(cfg["disk_radius"], int) or (cfg["disk_radius"] <= 0)
         ):
             message = "Parameter 'disk_radius' has to be a positive integer."
             logger.error(message)
@@ -153,9 +148,7 @@ class MeanOfImages(BaseOp):
                 )
             arr = np.asarray(img)
             if arr.ndim == 0:
-                raise ValueError(
-                    f"Input #{i} is scalar; expected image array."
-                )
+                raise ValueError(f"Input #{i} is scalar; expected image array.")
             arrays.append(arr)
 
         # --- shape consistency ---

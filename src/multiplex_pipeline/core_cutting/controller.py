@@ -28,7 +28,7 @@ class CorePreparationController:
         mask_value: int = 0,
         max_pyramid_levels: int = 3,
         chunk_size: tuple[int, int, int] = (1, 256, 256),
-        downscale = 2,
+        downscale=2,
         core_cleanup_enabled: bool = True,
     ) -> None:
         """Initialize the controller.
@@ -66,7 +66,7 @@ class CorePreparationController:
             output_dir=output_dir,
             max_pyramid_levels=max_pyramid_levels,
             chunk_size=chunk_size,
-            downscale = downscale,
+            downscale=downscale,
             allowed_channels=list(self.image_paths.keys()),
             cleanup=core_cleanup_enabled,
         )
@@ -90,9 +90,7 @@ class CorePreparationController:
                 core_img = self.cutter.extract_core(full_img, row)
                 write_temp_tiff(core_img, core_id, channel, self.temp_dir)
                 self.ready_cores.setdefault(core_id, set()).add(channel)
-                logger.debug(
-                    f"Cut and saved core {core_id}, channel {channel}"
-                )
+                logger.debug(f"Cut and saved core {core_id}, channel {channel}")
         finally:
             # Ensures file is closed even if something fails mid-cut
             if hasattr(store, "close"):

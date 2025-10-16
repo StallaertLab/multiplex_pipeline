@@ -48,9 +48,7 @@ def scan_channels_from_list(
     for filepath in files:
         fname = os.path.basename(filepath)
 
-        match = re.match(
-            r"[^_]+_(\d+)\.0\.4_R000_([^_]+)_(.*)\.ome\.tif+", fname
-        )
+        match = re.match(r"[^_]+_(\d+)\.0\.4_R000_([^_]+)_(.*)\.ome\.tif+", fname)
         if not match:
             continue
 
@@ -63,9 +61,7 @@ def scan_channels_from_list(
             parts = fname.split("_")
             if len(parts) > 4:
                 h_parts = parts[4].split("-")
-                marker = (
-                    "-".join(h_parts[:-1]) if len(h_parts) > 1 else h_parts[0]
-                )
+                marker = "-".join(h_parts[:-1]) if len(h_parts) > 1 else h_parts[0]
             else:
                 raise ValueError(
                     f"Cannot extract marker from filename '{fname}'. "
@@ -103,9 +99,7 @@ def scan_channels_from_list(
                 result[name] = image_dict[name]
             continue
 
-        items = [
-            (r, name) for r, name in items if name not in exclude_channels
-        ]
+        items = [(r, name) for r, name in items if name not in exclude_channels]
         if not items:
             continue
 
@@ -123,9 +117,7 @@ def scan_channels_from_list(
             if m not in result:
                 logger.warning(f"Requested use_marker '{m}' not found.")
 
-        result = {
-            base: path for base, path in result.items() if base in use_markers
-        }
+        result = {base: path for base, path in result.items() if base in use_markers}
         logger.info(f"Restricting to use_markers = {use_markers}")
         logger.info(f"Final filtered channels: {list(result.keys())}")
 
@@ -135,9 +127,7 @@ def scan_channels_from_list(
                 logger.warning(f"Requested ignore_marker '{m}' not found.")
 
         result = {
-            base: path
-            for base, path in result.items()
-            if base not in ignore_markers
+            base: path for base, path in result.items() if base not in ignore_markers
         }
         logger.info(f"Ignoring markers = {ignore_markers}")
         logger.info(f"Final filtered channels: {list(result.keys())}")
@@ -150,9 +140,7 @@ def scan_channels_from_list(
     for ch in sorted(result, key=str.casefold):
         logger.info(f"  Channel: {ch} <- {result[ch]}")
 
-    logger.info(
-        f"OME-TIFF files not used in final channel selection {len(unused)}:"
-    )
+    logger.info(f"OME-TIFF files not used in final channel selection {len(unused)}:")
     for ch, file in sorted(unused.items()):
         logger.info(f"  Unused: Channel {ch} <- {file}")
 

@@ -15,6 +15,7 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
+        args: ["--line-length=88"]
 
   # - repo: https://github.com/pre-commit/mirrors-mypy
   #   rev: v1.9.0

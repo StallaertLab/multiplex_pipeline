@@ -27,13 +27,9 @@ class SubtractionBuilder(BaseOp):
 
     def run(self, mask_cell, mask_nucleus):
         if mask_cell.shape != mask_nucleus.shape:
-            raise ValueError(
-                "Source masks must have the same shape for subtraction."
-            )
+            raise ValueError("Source masks must have the same shape for subtraction.")
         result = mask_cell.copy()
-        result[mask_nucleus > 0] = (
-            0  # zero out regions where mask_nucleus is present
-        )
+        result[mask_nucleus > 0] = 0  # zero out regions where mask_nucleus is present
         return result
 
 
@@ -63,14 +59,8 @@ class RingBuilder(BaseOp):
     OUTPUT_TYPE = OutputType.LABELS
 
     def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if (
-            not isinstance(cfg, dict)
-            or "outer" not in cfg
-            or "inner" not in cfg
-        ):
-            raise ValueError(
-                "RingBuilder requires parameters: outer and inner radius."
-            )
+        if not isinstance(cfg, dict) or "outer" not in cfg or "inner" not in cfg:
+            raise ValueError("RingBuilder requires parameters: outer and inner radius.")
         if not isinstance(cfg["outer"], int) or cfg["outer"] <= 0:
             raise ValueError("'outer' radius must be a positive integer")
         if not isinstance(cfg["inner"], int) or cfg["inner"] < 0:

@@ -119,21 +119,21 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         for attempt in range(1, MAX_TRIES + 1):
             try:
                 # opportunistic auto-activation before each attempt
-                self.tc.endpoint_autoactivate(
-                    self.source_endpoint, if_expires_in=3600
-                )
+                self.tc.endpoint_autoactivate(self.source_endpoint, if_expires_in=3600)
                 self.tc.endpoint_autoactivate(
                     self.destination_endpoint, if_expires_in=3600
                 )
 
                 submission_result = self.tc.submit_transfer(transfer_data)
-                
+
                 return submission_result["task_id"]
 
             except GlobusAPIError as e:
                 # Retry only on transient service/network side errors
                 if e.http_status in RETRYABLE_STATUSES:
-                    delay = self._sleep_with_backoff(attempt, delay, remote_path, local_path, e)
+                    delay = self._sleep_with_backoff(
+                        attempt, delay, remote_path, local_path, e
+                    )
                     continue
                 # Non-retryable Globus API error: re-raise to caller (caught in submit_all_transfers)
                 raise
@@ -149,14 +149,23 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
                 OSError,
             ) as e:
                 # Unknown / network hiccup → treat as transient
-                delay = self._sleep_with_backoff(attempt, delay, remote_path, local_path, e)
+                delay = self._sleep_with_backoff(
+                    attempt, delay, remote_path, local_path, e
+                )
 
         # Exhausted retries
         message = f"Exhausted retries submitting {remote_path} -> {local_path}"
         logger.error(message)
         raise RuntimeError(message)
 
-    def _sleep_with_backoff(self, attempt: int, delay: float, remote_path: str, local_path: str, err: Exception) -> float:
+    def _sleep_with_backoff(
+        self,
+        attempt: int,
+        delay: float,
+        remote_path: str,
+        local_path: str,
+        err: Exception,
+    ) -> float:
         """Log, sleep, and compute the next backoff delay."""
         sleep_for = delay + random.uniform(0, 0.5 * delay)
         logger.warning(
@@ -166,7 +175,6 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         time.sleep(sleep_for)
         return min(delay * 2, MAX_DELAY)
 
-
     def is_channel_ready(self, channel: str) -> bool:
         """Return True when the file for `channel` is ready; False if still pending.
         Raises on impossible states or hard failures."""
@@ -175,7 +183,10 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
             return True
 
         # find the (single) pending task for this channel
-        idx = next((i for i, (_, _, ch) in enumerate(self.pending) if ch == channel), None)
+        idx = next(
+            (i for i, (_, _, ch) in enumerate(self.pending) if ch == channel),
+            None,
+        )
         if idx is None:
             # with fail-fast submit, this should never happen
             raise RuntimeError(f"No pending task for {channel}.")

@@ -21,9 +21,7 @@ def change_to_wsl_path(path):
 
     drive_letter = path[0].lower()
     if not ("a" <= drive_letter <= "z"):
-        raise ValueError(
-            f"Invalid drive letter: '{drive_letter}' in path '{path}'."
-        )
+        raise ValueError(f"Invalid drive letter: '{drive_letter}' in path '{path}'.")
 
     # Convert to WSL path
     wsl_path = f"/mnt/{drive_letter}" + path[2:].replace("\\", "/")
@@ -122,14 +120,10 @@ class GlobusPathConverter:
                 "layout must be 'multi_drive', 'single_drive', or 'subfolder_root'"
             )
 
-        self.shared_root = (
-            os.path.normpath(shared_root) if shared_root else None
-        )
+        self.shared_root = os.path.normpath(shared_root) if shared_root else None
 
         if layout == "subfolder_root" and not shared_root:
-            raise RuntimeError(
-                "shared_root is required when layout='subfolder_root'"
-            )
+            raise RuntimeError("shared_root is required when layout='subfolder_root'")
 
     def windows_to_globus(self, win_path: str) -> str:
         """Convert a Windows path to a Globus-compatible POSIX path.
@@ -167,19 +161,13 @@ class GlobusPathConverter:
 
         elif self.layout == "subfolder_root":
             if not self.shared_root:
-                raise RuntimeError(
-                    "shared_root not set for subfolder_root layout."
-                )
+                raise RuntimeError("shared_root not set for subfolder_root layout.")
             norm_win = os.path.normpath(win_path)
             if (
-                os.path.commonprefix(
-                    [norm_win.lower(), self.shared_root.lower()]
-                )
+                os.path.commonprefix([norm_win.lower(), self.shared_root.lower()])
                 != self.shared_root.lower()
             ):
-                raise ValueError(
-                    f"Path is outside the shared root: {self.shared_root}"
-                )
+                raise ValueError(f"Path is outside the shared root: {self.shared_root}")
             rel = os.path.relpath(norm_win, start=self.shared_root)
             rel_posix = PurePosixPath(*PureWindowsPath(rel).parts)
             return str(PurePosixPath("/", rel_posix))

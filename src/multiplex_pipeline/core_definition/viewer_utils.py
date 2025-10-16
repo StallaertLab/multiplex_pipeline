@@ -113,18 +113,14 @@ def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
         # get the saving path if not provided
         if save_path is None:
             # open dialog for getting a dir to save csv file
-            save_path = QFileDialog.getSaveFileName(filter="CSV file (*.csv)")[
-                0
-            ]
+            save_path = QFileDialog.getSaveFileName(filter="CSV file (*.csv)")[0]
 
         # get the polygon data
         poly_data = viewer.layers["cores"].data
         poly_types = viewer.layers["cores"].shape_type
 
         # prepare df for saving
-        df = prepare_poly_df_for_saving(
-            poly_data, poly_types, req_level, org_im_shape
-        )
+        df = prepare_poly_df_for_saving(poly_data, poly_types, req_level, org_im_shape)
 
         # save the rois
         df.to_pickle(save_path.with_suffix(".pkl"))

@@ -14,12 +14,8 @@ def parse_args():
         description="Scan a directory of OME-TIFFs and output a channel-to-path mapping."
     )
     parser.add_argument("image_dir", help="Directory path (local or Globus)")
-    parser.add_argument(
-        "--include", nargs="+", help="Channel base names to include"
-    )
-    parser.add_argument(
-        "--exclude", nargs="+", help="Channel base names to exclude"
-    )
+    parser.add_argument("--include", nargs="+", help="Channel base names to include")
+    parser.add_argument("--exclude", nargs="+", help="Channel base names to exclude")
     parser.add_argument("--output", help="Output JSON file to save result")
     parser.add_argument(
         "--config-dir",

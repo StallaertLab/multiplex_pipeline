@@ -34,16 +34,14 @@ def build_processor(kind: Kind, name: str, **cfg: Any) -> BaseOp:
     if kind not in REGISTRY:
         available_kinds = ", ".join(sorted(REGISTRY))
         raise ValueError(
-            f"Unknown kind '{kind}'. "
-            f"Available kinds: {available_kinds or '(none)'}"
+            f"Unknown kind '{kind}'. Available kinds: {available_kinds or '(none)'}"
         )
 
     registry_for_kind = REGISTRY[kind]
     if name not in registry_for_kind:
         available_names = ", ".join(sorted(registry_for_kind))
         raise ValueError(
-            f"Unknown {kind} '{name}'. "
-            f"Available: {available_names or '(none)'}"
+            f"Unknown {kind} '{name}'. Available: {available_names or '(none)'}"
         )
 
     cls = registry_for_kind[name]

@@ -93,9 +93,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     # Compulsory arguments
-    parser.add_argument(
-        "im", type=str, help="Path to the image for segmentation."
-    )
+    parser.add_argument("im", type=str, help="Path to the image for segmentation.")
     parser.add_argument(
         "req_level", type=int, help="Requested resolution level of the image."
     )

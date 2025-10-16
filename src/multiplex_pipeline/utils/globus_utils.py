@@ -26,9 +26,7 @@ class GlobusConfig:
         config_path = Path(config_path)
         if not config_path.exists():
             logger.error("Configuration file not found.")
-            raise FileNotFoundError(
-                f"Configuration file not found: {config_path}"
-            )
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
         with open(config_path) as f:
             config = yaml.safe_load(f)

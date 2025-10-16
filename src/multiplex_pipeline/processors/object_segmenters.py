@@ -33,7 +33,7 @@ class InstansegSegmenter(BaseOp):
             "resolve_cell_and_nucleus",
             "cleanup_fragments",
             "clean_cache",
-            "model"
+            "model",
         ]
         for param in cfg:
             if param not in defined_parameters:
@@ -41,10 +41,7 @@ class InstansegSegmenter(BaseOp):
                 logger.warning(message)
 
         # specify number of outputs depending on selected model option
-        if (
-            "resolve_cell_and_nucleus" in cfg
-            and self.cfg["resolve_cell_and_nucleus"]
-        ):
+        if "resolve_cell_and_nucleus" in cfg and self.cfg["resolve_cell_and_nucleus"]:
             self.EXPECTED_OUTPUTS = 2
         else:
             self.EXPECTED_OUTPUTS = 1
@@ -57,7 +54,7 @@ class InstansegSegmenter(BaseOp):
 
     def prepare_input(self, in_image):
 
-        if isinstance(in_image, (tuple,list)):
+        if isinstance(in_image, (tuple, list)):
             in_image = np.stack(in_image, axis=-1)  # (H, W, C)
         elif isinstance(in_image, np.ndarray):
             if in_image.ndim == 2:
@@ -84,13 +81,12 @@ class InstansegSegmenter(BaseOp):
         labeled_output, _ = self.model.eval_medium_image(in_image, **self.cfg)
 
         # extract result
-        segm_arrays = [
-            np.array(x).astype(int) for x in labeled_output[0, :, :, :]
-        ]
+        segm_arrays = [np.array(x).astype(int) for x in labeled_output[0, :, :, :]]
 
         # clean cuda cache
-        if self.cfg.get('clean_cache',False):
+        if self.cfg.get("clean_cache", False):
             import torch
+
             torch.cuda.empty_cache()
 
         return segm_arrays

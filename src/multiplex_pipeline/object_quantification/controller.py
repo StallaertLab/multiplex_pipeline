@@ -16,9 +16,7 @@ from multiplex_pipeline.utils.im_utils import calculate_median
 class QuantificationController:
     def __init__(
         self,
-        mask_keys: Dict[
-            str, str
-        ],  # e.g. {'cell': 'cell_mask', 'nuc': 'nucleus_mask'}
+        mask_keys: Dict[str, str],  # e.g. {'cell': 'cell_mask', 'nuc': 'nucleus_mask'}
         table_name: str = "quantification",
         connect_to_mask: Optional[str] = None,
         to_quantify: Optional[List[str]] = None,
@@ -48,16 +46,12 @@ class QuantificationController:
         }
 
     def get_mask(self, mask_key: str) -> np.ndarray:
-        mask = np.array(
-            sd.get_pyramid_levels(self.sdata[mask_key], n=0)
-        ).squeeze()
+        mask = np.array(sd.get_pyramid_levels(self.sdata[mask_key], n=0)).squeeze()
         return mask
 
     def get_channel(self, channel_key: str) -> np.ndarray:
 
-        img = np.array(
-            sd.get_pyramid_levels(self.sdata[channel_key], n=0)
-        ).squeeze()
+        img = np.array(sd.get_pyramid_levels(self.sdata[channel_key], n=0)).squeeze()
 
         if img.ndim > 2:
             # warning if more than 2D will take the mean across channels
@@ -71,9 +65,7 @@ class QuantificationController:
     def build_obs(self):
         morph_dfs = []
         for mask_suffix, mask in self.masks.items():
-            logger.info(
-                f"Quantifying morphology features for mask '{mask_suffix}'"
-            )
+            logger.info(f"Quantifying morphology features for mask '{mask_suffix}'")
             morph_props = regionprops_table(
                 mask,
                 properties=[
@@ -89,9 +81,7 @@ class QuantificationController:
             morph_df = pd.DataFrame(morph_props)
             morph_df = morph_df.rename(
                 columns={
-                    c: f"{c}_{mask_suffix}"
-                    for c in morph_df.columns
-                    if c != "label"
+                    c: f"{c}_{mask_suffix}" for c in morph_df.columns if c != "label"
                 }
             )
             morph_dfs.append(morph_df.set_index("label"))
@@ -165,9 +155,7 @@ class QuantificationController:
         for ch in self.channels:
             img = self.get_channel(ch)
             for mask_suffix, mask in self.masks.items():
-                logger.info(
-                    f"Quantifying channel '{ch}' with mask '{mask_suffix}'"
-                )
+                logger.info(f"Quantifying channel '{ch}' with mask '{mask_suffix}'")
                 props = regionprops_table(
                     mask,
                     intensity_image=img,
@@ -209,9 +197,7 @@ class QuantificationController:
                 )
                 del self.sdata[self.table_name]
                 self.sdata.delete_element_from_disk(self.table_name)
-                logger.info(
-                    f"Existing table '{self.table_name}' deleted from sdata."
-                )
+                logger.info(f"Existing table '{self.table_name}' deleted from sdata.")
 
     def validate_sdata_as_input(self):
 
@@ -308,9 +294,7 @@ class QuantificationController:
 
             # connect to the cell layer for napari-spatialdata compatibility
             adata.uns["spatialdata"] = {
-                "region": [
-                    self.connect_to_mask
-                ],  # the element(s) this table annotates
+                "region": [self.connect_to_mask],  # the element(s) this table annotates
                 "region_key": "region",  # column in obs that points to the region
                 "instance_key": "cell",  # column in obs that points to the object ID
             }

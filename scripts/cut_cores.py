@@ -31,8 +31,7 @@ def configure_logging(settings):
     """
 
     log_file = (
-        settings["log_dir"]
-        / f"cores_cutting_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
+        settings["log_dir"] / f"cores_cutting_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
     )
 
     logger.remove()

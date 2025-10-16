@@ -27,9 +27,7 @@ def load_workstation_config(config_path=None):
         return workstation_config
 
     else:
-        raise KeyError(
-            "'workstations' key not found in the configuration file."
-        )
+        raise KeyError("'workstations' key not found in the configuration file.")
 
 
 def load_analysis_settings(settings_path, remote_analysis=False):
@@ -46,13 +44,9 @@ def load_analysis_settings(settings_path, remote_analysis=False):
 
     # Define defaults relative to analysis_dir
     if remote_analysis:
-        analysis_dir = (
-            Path(settings["remote_analysis_dir"]) / settings["analysis_name"]
-        )
+        analysis_dir = Path(settings["remote_analysis_dir"]) / settings["analysis_name"]
     else:
-        analysis_dir = (
-            Path(settings["local_analysis_dir"]) / settings["analysis_name"]
-        )
+        analysis_dir = Path(settings["local_analysis_dir"]) / settings["analysis_name"]
 
     settings["analysis_dir"] = analysis_dir
 

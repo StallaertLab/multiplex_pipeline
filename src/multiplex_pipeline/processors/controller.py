@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import spatialdata as sd
@@ -10,11 +10,19 @@ from multiplex_pipeline.processors.base import BaseOp
 
 
 class ResourceBuildingController:
+    """Controls the execution of a builder op on a SpatialData object.
+
+    This class orchestrates the process of running a `BaseOp` subclass. It
+    manages input validation, fetching data from the correct resolution,
+    handling overwrites, executing the operation, and saving the results back
+    into the SpatialData object.
+    """
+
     def __init__(
         self,
         builder: BaseOp,
-        input_names,
-        output_names,
+        input_names: Union[str, Sequence[str]],
+        output_names: Union[str, Sequence[str]],
         resolution_level: int = 0,
         keep: bool = False,
         overwrite: bool = False,
@@ -22,6 +30,19 @@ class ResourceBuildingController:
         downscale: int = 2,
         chunk_size: Optional[Sequence[int]] = None,
     ) -> None:
+        """Initializes the ResourceBuildingController.
+
+        Args:
+            builder: The processing operation instance (e.g., a filter).
+            input_names: Name or sequence of names of input elements.
+            output_names: Name or sequence of names for output elements.
+            resolution_level: The resolution level to fetch input data from.
+            keep: Whether to save the generated element to disk.
+            overwrite: Whether to overwrite existing elements with the same name.
+            pyramid_levels: The number of pyramid levels for the output.
+            downscale: The downscaling factor between pyramid levels.
+            chunk_size: The chunk size for the output Dask array.
+        """
 
         self.builder = builder
         self.input_names = input_names
@@ -36,11 +57,22 @@ class ResourceBuildingController:
         self.overwrite = overwrite
 
     def validate_elements_present(self):
+        """Checks if all specified input elements exist in the sdata object.
+
+        Raises:
+            ValueError: If an input element is not found.
+        """
         for src in self.input_names:
             if src not in self.sdata:
                 raise ValueError(f"Requested source mask '{src}' not found.")
 
     def validate_resolution_present(self):
+        """Checks if inputs have the required resolution level.
+
+        Raises:
+            ValueError: If an input element does not have the specified
+                resolution level.
+        """
         for src in self.input_names:
             el = self.sdata[src]
             if len(el.items()) <= self.resolution_level:
@@ -55,11 +87,20 @@ class ResourceBuildingController:
         )
 
     def validate_sdata_as_input(self):
+        """Runs all input validation checks."""
 
         self.validate_elements_present()
         self.validate_resolution_present()
 
     def prepare_to_overwrite(self):
+        """Handles existing output elements based on the `overwrite` flag.
+
+        If an output name already exists and `overwrite` is False, it raises
+        an error. If `overwrite` is True, it deletes the existing element.
+
+        Raises:
+            ValueError: If an output element exists and `overwrite` is False.
+        """
 
         for out_name in self.output_names:
             if out_name in self.sdata:
@@ -73,11 +114,17 @@ class ResourceBuildingController:
                     )
                     del self.sdata[out_name]
                     self.sdata.delete_element_from_disk(out_name)
-                    logger.info(
-                        f"Existing mask '{out_name}' deleted from sdata."
-                    )
+                    logger.info(f"Existing mask '{out_name}' deleted from sdata.")
 
     def bring_to_max_resolution(self, el):
+        """Upscales an element to the base resolution (level 0).
+
+        Args:
+            el: The numpy array to upscale.
+
+        Returns:
+            The upscaled numpy array.
+        """
 
         scale_factor = self.downscale**self.resolution_level
         new_shape = tuple(dim * scale_factor for dim in el.shape)
@@ -92,6 +139,14 @@ class ResourceBuildingController:
         return el_res0
 
     def pack_into_model(self, el):
+        """Packs a numpy array into the appropriate SpatialData model.
+
+        Args:
+            el: The numpy array to pack.
+
+        Returns:
+            An `Image2DModel` or `Labels2DModel` instance.
+        """
         if self.builder.OUTPUT_TYPE.value == "labels":
             el_model = Labels2DModel.parse(
                 data=el.astype(int),
@@ -111,6 +166,14 @@ class ResourceBuildingController:
         return el_model
 
     def run(self, sdata):
+        """Executes the full pipeline for the processor. It starts with running validation of a compatibility of a processor with the sdata object to process.
+
+        Args:
+            sdata: The SpatialData object to process.
+
+        Returns:
+            The processed SpatialData object.
+        """
 
         # get sdata
         self.sdata = sdata

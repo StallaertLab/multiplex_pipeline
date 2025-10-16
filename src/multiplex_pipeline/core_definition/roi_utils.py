@@ -8,9 +8,7 @@ import pandas as pd
 from shapely.geometry import Polygon
 
 
-def pre_select_objects(
-    masks, im, min_area, max_area, min_iou, min_stability, min_int
-):
+def pre_select_objects(masks, im, min_area, max_area, min_iou, min_stability, min_int):
     """
     Function to pre-select objects based on area, iou, stability and intensity.
 
@@ -40,9 +38,7 @@ def pre_select_objects(
 
             rect = xywh_to_corners(item["bbox"]).astype(int)
 
-            mean_int = im[
-                rect[0, 0] : rect[2, 0], rect[0, 1] : rect[1, 1]
-            ].mean()
+            mean_int = im[rect[0, 0] : rect[2, 0], rect[0, 1] : rect[1, 1]].mean()
 
             if mean_int > min_int:
                 masks_filtered.append(item)
@@ -68,10 +64,7 @@ def do_boxes_overlap(bbox1, bbox2):
 
     # Check for no overlap
     return not (
-        x1_max <= x2_min
-        or x2_max <= x1_min
-        or y1_max <= y2_min
-        or y2_max <= y1_min
+        x1_max <= x2_min or x2_max <= x1_min or y1_max <= y2_min or y2_max <= y1_min
     )
 
 
@@ -94,9 +87,7 @@ def remove_overlapping_objects(objects):
         remaining_objects.append(current)
         # Remove objects that overlap with the current one
         objects = [
-            obj
-            for obj in objects
-            if not do_boxes_overlap(current["bbox"], obj["bbox"])
+            obj for obj in objects if not do_boxes_overlap(current["bbox"], obj["bbox"])
         ]
 
     return remaining_objects
@@ -142,8 +133,7 @@ def get_refined_rectangles(
     masks_non_overlapping = remove_overlapping_objects(masks_pre_selected)
 
     rect_list = [
-        xywh_to_corners(mask["bbox"], frame=frame)
-        for mask in masks_non_overlapping
+        xywh_to_corners(mask["bbox"], frame=frame) for mask in masks_non_overlapping
     ]
 
     return rect_list
@@ -182,18 +172,14 @@ def prepare_polygons(poly_data, req_level, org_im_shape):
     """
 
     # get vertices for the original image
-    frame_vertices = xywh_to_corners(
-        [0, 0, org_im_shape[1], org_im_shape[0]], frame=0
-    )
+    frame_vertices = xywh_to_corners([0, 0, org_im_shape[1], org_im_shape[0]], frame=0)
     frame = Polygon(frame_vertices)
 
     trim_poly_list = []
     for polygon_vertices in poly_data:
 
         # rescale the polygons to the original image size
-        polygon_vertices = np.array(polygon_vertices).astype(int) * (
-            2**req_level
-        )
+        polygon_vertices = np.array(polygon_vertices).astype(int) * (2**req_level)
 
         polygon = Polygon(polygon_vertices)
 
@@ -202,9 +188,7 @@ def prepare_polygons(poly_data, req_level, org_im_shape):
 
         # add the polygon to the list
         if not intersection.is_empty:
-            trim_poly_list.append(
-                np.array(intersection.exterior.coords)[:-1, :]
-            )
+            trim_poly_list.append(np.array(intersection.exterior.coords)[:-1, :])
         else:
             trim_poly_list.append(None)
 
@@ -226,9 +210,7 @@ def sort_cores(df):
     df = (
         df.assign(
             row_rounded=lambda x: np.around(x["row_start"] / 2, decimals=-3),
-            col_rounded=lambda x: np.around(
-                x["column_start"] / 2, decimals=-3
-            ),
+            col_rounded=lambda x: np.around(x["column_start"] / 2, decimals=-3),
         )
         .sort_values(by=["row_rounded", "col_rounded"])
         .reset_index(drop=True)
@@ -288,13 +270,9 @@ def prepare_poly_df_for_saving(poly_data, poly_types, req_level, org_im_shape):
     df = df.dropna(subset=["polygon_vertices"])
 
     # create the array of bounding boxes
-    bbox_array = np.array(
-        [create_bbox(poly) for poly in df.polygon_vertices.to_list()]
-    )
+    bbox_array = np.array([create_bbox(poly) for poly in df.polygon_vertices.to_list()])
 
-    df.loc[:, ["row_start", "row_stop", "column_start", "column_stop"]] = (
-        bbox_array
-    )
+    df.loc[:, ["row_start", "row_stop", "column_start", "column_stop"]] = bbox_array
 
     # arrange polygons
     df = sort_cores(df)
@@ -341,8 +319,7 @@ def read_in_saved_rois(save_path, IM_LEVEL):
             df = pkl.load(f)
         rect_list = get_visual_rectangles(df, IM_LEVEL)
         poly_list = [
-            (x / (2**IM_LEVEL)).astype("int")
-            for x in df.polygon_vertices.to_list()
+            (x / (2**IM_LEVEL)).astype("int") for x in df.polygon_vertices.to_list()
         ]
         return rect_list, poly_list, df
     else:
