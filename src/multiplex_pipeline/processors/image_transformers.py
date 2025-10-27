@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
-
 import numpy as np
 from loguru import logger
+from pydantic import (
+    Field,
+    ValidationInfo,
+    model_validator,
+)
 
-from multiplex_pipeline.processors.base import BaseOp, OutputType
+from multiplex_pipeline.processors.base import (
+    BaseOp,
+    OutputType,
+    ProcessorParamsBase,
+)
 from multiplex_pipeline.processors.registry import register
 
 ################################################################################
@@ -20,33 +27,25 @@ class Normalize(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        # If config missing or empty, set defaults and log.
-        if not cfg:
-            logger.warning(
-                "No parameters provided for normalization; using defaults low=1, high=99."
-            )
-            cfg = {"low": 1, "high": 99}
+    class Params(ProcessorParamsBase):
+        """Parameters for percentile normalization."""
 
-        low = cfg.get("low")
-        high = cfg.get("high")
+        low: float = Field(
+            1.0, ge=0.0, le=100.0, description="Lower percentile bound (0-100)."
+        )
+        high: float = Field(
+            99.0, ge=0.0, le=100.0, description="Upper percentile bound (0-100)."
+        )
 
-        # Coerce to floats
-        low = float(low)
-        high = float(high)
+        @model_validator(mode="after")
+        def check_low_less_than_high(self, info: ValidationInfo):
+            """Ensures the lower bound is strictly less than the upper bound."""
+            if self.low >= self.high:
+                raise ValueError(
+                    f"'low' ({self.low}) must be less than 'high' ({self.high})."
+                )
 
-        # Validate numeric range
-        if not (0.0 <= low <= 100.0):
-            raise ValueError(f"Parameter 'low' must be between 0 and 100 (got {low}).")
-        if not (0.0 <= high <= 100.0):
-            raise ValueError(
-                f"Parameter 'high' must be between 0 and 100 (got {high})."
-            )
-        if low >= high:
-            raise ValueError(f"'low' must be < 'high' (got low={low}, high={high}).")
-
-        # Store canonicalized config
-        self.cfg = {"low": low, "high": high}
+            return self
 
     def run(self, img):
         # Must be array-like
@@ -58,7 +57,7 @@ class Normalize(BaseOp):
 
         arr = np.asarray(img)
 
-        low, high = self.cfg["low"], self.cfg["high"]
+        low, high = self.params.low, self.params.high
         p_low = np.percentile(arr, low)
         p_high = np.percentile(arr, high)
 
@@ -88,19 +87,15 @@ class DenoiseWithMedian(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if not cfg:
-            cfg["disk_radius"] = 3
-            logger.warning(
-                f"No kernel size for denoising with median kernel, using disk_radius = {cfg['disk_radius']}."
-            )
+    class Params(ProcessorParamsBase):
+        """Parameters for the median denoising operation."""
 
-        if "disk_radius" in cfg and (
-            not isinstance(cfg["disk_radius"], int) or (cfg["disk_radius"] <= 0)
-        ):
-            message = "Parameter 'disk_radius' has to be a positive integer."
-            logger.error(message)
-            raise ValueError(message)
+        # This handles the default, type hint, and positive integer check.
+        disk_radius: int = Field(
+            3,
+            gt=0,
+            description="The radius of the disk-shaped kernel for the median filter.",
+        )
 
     def run(self, img):
         # Must be array-like
@@ -113,7 +108,7 @@ class DenoiseWithMedian(BaseOp):
         from skimage.filters import median
         from skimage.morphology import disk
 
-        med = median(img, disk(self.cfg["disk_radius"]))
+        med = median(img, disk(self.params.disk_radius))
 
         return med
 
@@ -125,10 +120,6 @@ class MeanOfImages(BaseOp):
     EXPECTED_INPUTS = None  # allow any number of inputs
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.IMAGE  # produces a single averaged image
-
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if cfg:
-            raise ValueError("MeanOfImages takes no parameters.")
 
     def run(self, *images):
         """Compute elementwise mean over all provided images."""

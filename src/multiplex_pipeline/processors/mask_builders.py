@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Tuple
 
-from loguru import logger
+from pydantic import Field, field_validator, model_validator
 from skimage.morphology import closing, disk, opening
 from skimage.transform import resize
 
-from multiplex_pipeline.processors.base import BaseOp, OutputType
+from multiplex_pipeline.processors.base import (
+    BaseOp,
+    OutputType,
+    ProcessorParamsBase,
+)
 from multiplex_pipeline.processors.registry import register
 
 ################################################################################
@@ -21,16 +25,16 @@ class SubtractionBuilder(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if cfg:
-            raise ValueError("SubtractionBuilder takes no parameters.")
-
     def run(self, mask_cell, mask_nucleus):
         if mask_cell.shape != mask_nucleus.shape:
             raise ValueError("Source masks must have the same shape for subtraction.")
         result = mask_cell.copy()
         result[mask_nucleus > 0] = 0  # zero out regions where mask_nucleus is present
         return result
+
+
+###############################################################################
+###############################################################################
 
 
 @register("mask_builder", "multiply")
@@ -40,10 +44,6 @@ class MultiplicationBuilder(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if cfg:
-            raise ValueError("SubtractionBuilder takes no parameters.")
-
     def run(self, mask1, mask2):
         if mask1.shape != mask2.shape:
             raise ValueError("Source masks must have the same shape.")
@@ -51,6 +51,8 @@ class MultiplicationBuilder(BaseOp):
         return result
 
 
+###############################################################################
+###############################################################################
 @register("mask_builder", "ring")
 class RingBuilder(BaseOp):
 
@@ -58,23 +60,36 @@ class RingBuilder(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        if not isinstance(cfg, dict) or "outer" not in cfg or "inner" not in cfg:
-            raise ValueError("RingBuilder requires parameters: outer and inner radius.")
-        if not isinstance(cfg["outer"], int) or cfg["outer"] <= 0:
-            raise ValueError("'outer' radius must be a positive integer")
-        if not isinstance(cfg["inner"], int) or cfg["inner"] < 0:
-            raise ValueError("'inner' radius must be a non-negative integer.")
+    class Params(ProcessorParamsBase):
+        """Parameters for creating a ring mask."""
+
+        outer: int = Field(
+            7, gt=0, description="The outer radius of the ring in pixels."
+        )
+        inner: int = Field(
+            2, ge=0, description="The inner radius of the ring in pixels."
+        )
+
+        @model_validator(mode="after")
+        def check_radii_are_valid(self):
+            """Ensures the outer radius is strictly greater than the inner radius."""
+            if self.outer <= self.inner:
+                raise ValueError(
+                    f"outer radius ({self.outer}) must be strictly greater than inner radius ({self.inner})"
+                )
+            return self
 
     def run(self, mask):
         from skimage.segmentation import expand_labels
 
-        mask_big = expand_labels(mask, self.cfg["outer"])
-        mask_small = expand_labels(mask, self.cfg["inner"])
+        mask_big = expand_labels(mask, self.params.outer)
+        mask_small = expand_labels(mask, self.params.inner)
         result = mask_big - mask_small
         return result
 
 
+###############################################################################
+###############################################################################
 @register("mask_builder", "blob")
 class BlobBuilder(BaseOp):
 
@@ -82,40 +97,20 @@ class BlobBuilder(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        # Defaults
-        work_shape = cfg.get("work_shape", (250, 250))
-        radius = cfg.get("radius", 5)
+    class Params(ProcessorParamsBase):
+        """Parameters for the blob creation operation."""
 
-        # Validate work_shape
-        if (
-            not isinstance(work_shape, Sequence)
-            or len(work_shape) != 2
-            or not all(isinstance(x, int) for x in work_shape)
-            or not all(x > 0 for x in work_shape)
-        ):
-            raise ValueError(
-                "Parameter 'work_shape' must be a tuple/list of two positive integers, "
-                f"e.g. (250, 250). Got: {work_shape!r}"
-            )
+        work_shape: Tuple[int, int] = (250, 250)
+        radius: int = Field(5, gt=0)
 
-        # Validate radius
-        if not isinstance(radius, int) or radius <= 0:
-            raise ValueError(
-                f"Parameter 'radius' has to be a positive integer. Got: {radius!r}"
-            )
-
-        # Store canonicalized config
-        self.cfg = {"work_shape": tuple(work_shape), "radius": int(radius)}
-
-        # Log if defaults were used
-        if "work_shape" not in cfg or "radius" not in cfg:
-            logger.warning(
-                "%s: using defaults work_shape=%s, radius=%s.",
-                self.__class__.__name__,
-                self.cfg["work_shape"],
-                self.cfg["radius"],
-            )
+        @field_validator("work_shape")
+        def check_positive_dimensions(cls, v: Tuple[int, int]) -> Tuple[int, int]:
+            """Ensures both dimensions in work_shape are positive integers."""
+            if not (v[0] > 0 and v[1] > 0):
+                raise ValueError(
+                    "Both dimensions in 'work_shape' must be positive integers."
+                )
+            return v
 
     def run(self, source):
 
@@ -126,7 +121,7 @@ class BlobBuilder(BaseOp):
         resized_mask = (
             resize(
                 binary_mask.astype(int),
-                self.cfg["work_shape"],
+                self.params.work_shape,
                 order=1,
                 preserve_range=True,
             )
@@ -134,7 +129,7 @@ class BlobBuilder(BaseOp):
         )
 
         # Morphological opening & closing
-        selem = disk(self.cfg["radius"])
+        selem = disk(self.params.radius)
         blob_mask = opening(resized_mask, selem)
         blob_mask = closing(blob_mask, selem)
 

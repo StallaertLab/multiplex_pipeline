@@ -1,10 +1,12 @@
 """General utilities for configuration loading and dynamic path handling."""
 
+import copy
 import os
 import platform
-from pathlib import Path
 
 import yaml
+
+from multiplex_pipeline.utils.config_schema import AnalysisConfig
 
 
 def load_workstation_config(config_path=None):
@@ -42,34 +44,66 @@ def load_analysis_settings(settings_path, remote_analysis=False):
     with open(settings_path) as file:
         settings = yaml.safe_load(file)
 
-    # Define defaults relative to analysis_dir
-    if remote_analysis:
-        analysis_dir = Path(settings["remote_analysis_dir"]) / settings["analysis_name"]
-    else:
-        analysis_dir = Path(settings["local_analysis_dir"]) / settings["analysis_name"]
+    # expand placeholders
+    settings = expand_pipeline(settings)
 
-    settings["analysis_dir"] = analysis_dir
+    # Validate and get the "blueprint" object
+    config = AnalysisConfig.model_validate(
+        settings, context={"remote_analysis": remote_analysis}
+    )
 
-    defaults = {
-        "core_info_file_path": analysis_dir / "cores.csv",
-        "cores_dir_tif": analysis_dir / "temp",
-        "cores_dir_output": analysis_dir / "cores",
-        "log_dir": analysis_dir / "logs",
-        "temp_dir": analysis_dir / "temp",
-    }
-
-    # Fill in defaults + normalize to Path
-    for key, default in defaults.items():
-        settings[key] = Path(settings.get(key) or default)
-
-    for path in [
-        analysis_dir,
-        settings["cores_dir_tif"],
-        settings["cores_dir_output"],
-        settings["log_dir"],
-        settings["temp_dir"],
-        settings["core_info_file_path"].parent,
+    # create dirs necessary for the analysis
+    for p in [
+        config.analysis_dir,
+        config.log_dir_path,
+        config.core_info_file_path.parent,
+        config.cores_dir_tif_path,
+        config.cores_dir_output_path,
     ]:
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(p, exist_ok=True)
 
-    return settings
+    return config
+
+
+def contains_placeholder(obj, placeholder="${input}"):
+    """Recursively check if the placeholder appears anywhere in the object."""
+    if isinstance(obj, dict):
+        return any(contains_placeholder(v, placeholder) for v in obj.values())
+    if isinstance(obj, list):
+        return any(contains_placeholder(v, placeholder) for v in obj)
+    return isinstance(obj, str) and placeholder in obj
+
+
+def replace_placeholders(obj, mapping):
+    """Recursively substitute ${key} with mapping[key] in strings."""
+    if isinstance(obj, dict):
+        return {k: replace_placeholders(v, mapping) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [replace_placeholders(v, mapping) for v in obj]
+    if isinstance(obj, str):
+        out = obj
+        for k, v in mapping.items():
+            out = out.replace("${" + k + "}", str(v))
+        return out
+    return obj
+
+
+def expand_pipeline(cfg, section="additional_elements"):
+    """
+    Expand any step where:
+      - input is a list
+      - and the step contains a placeholder like ${input}
+    """
+    expanded = []
+    for step in cfg.get(section, []):
+        inputs = step.get("input")
+        if isinstance(inputs, list) and contains_placeholder(step, "${input}"):
+            for inp in inputs:
+                inst = copy.deepcopy(step)
+                inst["input"] = inp
+                inst = replace_placeholders(inst, {"input": inp})
+                expanded.append(inst)
+        else:
+            expanded.append(step)
+    cfg[section] = expanded
+    return cfg

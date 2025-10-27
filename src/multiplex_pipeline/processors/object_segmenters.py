@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Literal, Optional
 
 import numpy as np
 from loguru import logger
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+)
 
-from multiplex_pipeline.processors.base import BaseOp, OutputType
+from multiplex_pipeline.processors.base import (
+    BaseOp,
+    OutputType,
+    ProcessorParamsBase,
+)
 from multiplex_pipeline.processors.registry import register
 
 ################################################################################
@@ -18,39 +27,35 @@ class InstansegSegmenter(BaseOp):
 
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
+    class Params(ProcessorParamsBase):
+        """Parameters for the Instanseg segmenter."""
 
-        # requires model as a paramter
-        if not isinstance(cfg, dict) or "model" not in cfg:
-            message = f"Instanseg requires specified model, instead got {cfg}"
-            logger.error(message)
-            raise ValueError(message)
+        model: Literal["fluorescence_nuclei_and_cells", "brightfield_nuclei"] = (
+            "fluorescence_nuclei_and_cells"
+        )
+        pixel_size: float = Field(
+            0.3, gt=0, description="Scaling factor for the segmentation."
+        )
+        resolve_cell_and_nucleus: bool = True
+        cleanup_fragments: bool = True
+        clean_cache: bool = True
 
-        # checks if other parameters are instanseg specific
-        # logs warning if not
-        defined_parameters = [
-            "pixel_size",
-            "resolve_cell_and_nucleus",
-            "cleanup_fragments",
-            "clean_cache",
-            "model",
-        ]
-        for param in cfg:
-            if param not in defined_parameters:
-                message = f"Instanseg does not accept parameter {param}. Check instanseg documentation for details."
-                logger.warning(message)
+        # warn the user about any unrecognized parameters
+        model_config = ConfigDict(extra="forbid")
 
-        # specify number of outputs depending on selected model option
-        if "resolve_cell_and_nucleus" in cfg and self.cfg["resolve_cell_and_nucleus"]:
+    def __init__(self, **cfg: Any):
+
+        super().__init__(**cfg)
+
+        if self.params.resolve_cell_and_nucleus:
             self.EXPECTED_OUTPUTS = 2
         else:
             self.EXPECTED_OUTPUTS = 1
 
-    def initialize(self):
-
+        # import model
         from instanseg import InstanSeg
 
-        self.model = InstanSeg(self.cfg["model"], verbosity=1)
+        self.model = InstanSeg(self.params.model, verbosity=1)
 
     def prepare_input(self, in_image):
 
@@ -78,13 +83,13 @@ class InstansegSegmenter(BaseOp):
         in_image = self.prepare_input(in_image)
 
         # Call InstanSeg
-        labeled_output, _ = self.model.eval_medium_image(in_image, **self.cfg)
+        labeled_output, _ = self.model.eval_medium_image(in_image, **dict(self.params))
 
         # extract result
         segm_arrays = [np.array(x).astype(int) for x in labeled_output[0, :, :, :]]
 
         # clean cuda cache
-        if self.cfg.get("clean_cache", False):
+        if self.params.clean_cache:
             import torch
 
             torch.cuda.empty_cache()
@@ -98,26 +103,38 @@ class Cellpose4Segmenter(BaseOp):
     EXPECTED_OUTPUTS = 1
     OUTPUT_TYPE = OutputType.LABELS
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
+    class Params(BaseModel):
+        """Parameters for the Cellpose segmenter."""
 
-        # checks if other parameters are instanseg specific
-        # logs warning if not
-        if isinstance(cfg, dict):
-            defined_parameters = [
-                "diameter",
-                "flow_threshold",
-                "cellprob_threshold",
-                "niter",
-            ]
-            for param in cfg:
-                if param not in defined_parameters:
-                    message = f"Cellpose does not accept parameter {param}. Check Cellpose documentation for details."
-                    logger.warning(message)
+        diameter: Optional[float] = Field(
+            30,
+            gt=0,
+            description="From Cellpose documentation: Scaling factor for the segmentation. Default size of cells 30 - segments well objects of size 10 -120.",
+        )
+        flow_threshold: Optional[float] = Field(
+            0.4,
+            description="From Cellpose documentation: Maximum allowed flow error per mask (flow_threshold, default = 0.4). Increase it if too few ROIs are detected; decrease it if too many poor-quality ROIs appear.",
+        )
+        cellprob_threshold: Optional[float] = Field(
+            0,
+            gt=-6,
+            lt=6,
+            description="From Cellpose documentation: Pixel threshold to define ROIs. Lower the threshold if too few ROIs are detected; raise it if too many—especially from dim regions.",
+        )
+        niter: Optional[int] = Field(
+            0,
+            ge=0,
+            description="From Cellpose documentation: If niter is None or 0, it scales with ROI size—use larger values (e.g., niter=2000) for longer ROIs.",
+        )
 
-        # add additional checks
+        # warn the user about any unrecognized parameters
+        model_config = ConfigDict(extra="forbid")
 
-    def initialize(self):
+    def __init__(self, **cfg: Any):
 
+        super().__init__(**cfg)
+
+        # import model
         from cellpose import models
 
         self.model = models.CellposeModel(gpu=True)
@@ -155,6 +172,6 @@ class Cellpose4Segmenter(BaseOp):
         in_image = self.prepare_input(in_image)
 
         # run segmentation
-        mask, *_ = self.model.eval(in_image, **self.cfg)
+        mask, *_ = self.model.eval(in_image, **self.params)
 
         return mask

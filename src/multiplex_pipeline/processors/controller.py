@@ -113,8 +113,10 @@ class ResourceBuildingController:
                         f"Mask name '{out_name}' already exists and will be overwritten."
                     )
                     del self.sdata[out_name]
-                    self.sdata.delete_element_from_disk(out_name)
-                    logger.info(f"Existing mask '{out_name}' deleted from sdata.")
+                    logger.info(f"Existing element '{out_name}' deleted from sdata.")
+                    if out_name in [x.split('/')[-1] for x in self.sdata.elements_paths_on_disk()]:
+                        self.sdata.delete_element_from_disk(out_name)
+                        logger.info(f"Existing element '{out_name}' deleted from disk.")
 
     def bring_to_max_resolution(self, el):
         """Upscales an element to the base resolution (level 0).

@@ -5,9 +5,16 @@ from enum import Enum
 from typing import (
     Any,
     List,
-    Mapping,
     Sequence,
     Tuple,
+)
+
+from loguru import logger
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    ValidationError,
+    model_validator,
 )
 
 
@@ -21,6 +28,32 @@ class OutputType(str, Enum):
 
     IMAGE = "image"
     LABELS = "labels"
+
+
+class ProcessorParamsBase(BaseModel):
+    """
+    A base model for processor parameters that logs a warning for any
+    optional parameter that is not explicitly provided by the user.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _log_missing_optional_params(cls, data: dict) -> dict:
+        """
+        Checks for optional fields that are missing from the input data and logs a warning that their default value will be used.
+        """
+
+        for field_name, field_info in cls.model_fields.items():
+            # Check if the field has a default value (making it optional)
+            # and if the user did NOT provide it in their YAML.
+            if field_info.get_default() is not None and field_name not in data:
+                default_value = field_info.get_default()
+                logger.warning(
+                    f"{cls.__qualname__}: Parameter {field_name} not provided. Using default value: {default_value}."
+                )
+
+        # Always return the data dictionary to allow validation to proceed
+        return data
 
 
 class BaseOp(ABC):
@@ -45,9 +78,14 @@ class BaseOp(ABC):
 
     kind: str
     type_name: str
-    EXPECTED_INPUTS: int | None = 1
-    EXPECTED_OUTPUTS: int | None = 1
+    EXPECTED_INPUTS: int | None = None
+    EXPECTED_OUTPUTS: int | None = None
     OUTPUT_TYPE: OutputType
+
+    class _NoParamsModel(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
+    Params: type[BaseModel] = _NoParamsModel
 
     def __init__(self, **cfg: Any):
         """Initialize the operation with keyword configuration.
@@ -65,6 +103,17 @@ class BaseOp(ABC):
                 f"{self.__class__.__name__}.OUTPUT_TYPE must be an OutputType enum, "
                 f"got {self.OUTPUT_TYPE!r}"
             )
+
+        self.validate_config()
+
+    def validate_config(self) -> None:
+        """Validate configuration using the class's 'Params' model."""
+        try:
+            self.params = self.Params(**self.cfg)
+        except ValidationError as e:
+            raise ValueError(
+                f"Parameters for '{self.type_name}' are not correct: {e}"
+            ) from e
 
     @staticmethod
     def _normalize_names(names: str | Sequence[str] | None, label: str) -> List[str]:
@@ -133,19 +182,6 @@ class BaseOp(ABC):
             )
 
         return in_list, out_list
-
-    def initialize(self):
-        """Performs any subclass-specific initialization.
-
-        This method is an optional hook for subclasses to perform any setup
-        that is required before the operation is run.
-        """
-        return None
-
-    @abstractmethod
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        """Validate configuration. Raise ValueError with clear message if invalid."""
-        ...
 
     @abstractmethod
     def run(self, *sources: Any) -> Any:
