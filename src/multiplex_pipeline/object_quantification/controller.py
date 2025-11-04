@@ -11,6 +11,7 @@ from skimage.measure import regionprops_table
 from spatialdata.models import TableModel
 
 from multiplex_pipeline.utils.im_utils import calculate_median
+from multiplex_pipeline.object_quantification.qc_shape_masker import QcShapeMasker
 
 
 class QuantificationController:
@@ -20,6 +21,8 @@ class QuantificationController:
         table_name: str = "quantification",
         connect_to_mask: Optional[str] = None,
         to_quantify: Optional[List[str]] = None,
+        quantify_qc = False,
+        qc_prefix: Optional[str] = 'qc_exclude',
         overwrite: bool = False,
     ) -> None:
         """
@@ -36,6 +39,8 @@ class QuantificationController:
         self.connect_to_mask = connect_to_mask
         self.channels = to_quantify
         self.table_name = table_name
+        self.quantify_qc = quantify_qc
+        self.qc_prefix = qc_prefix
         self.overwrite = overwrite
 
     def prepare_masks(self):
@@ -179,10 +184,8 @@ class QuantificationController:
             ),
             quant_dfs,
         )
-        X = quant_df.to_numpy()
-        var = pd.DataFrame(index=quant_df.columns)
 
-        return X, var
+        return quant_df
 
     def prepare_to_overwrite(self):
 
@@ -208,7 +211,7 @@ class QuantificationController:
                 logger.error(message)
                 raise ValueError(message)
 
-        if self.connect_to_mask not in self.sdata.labels:
+        if self.connect_to_mask is not None and self.connect_to_mask not in self.sdata.labels:
             message = f"Cannot connect the table to {self.connect_to_mask}, not present in sdata."
             logger.error(message)
             raise ValueError(message)
@@ -275,7 +278,13 @@ class QuantificationController:
         # Compute X (intensities)
         ########################################################################
 
-        X, var = self.build_X_and_var()
+        quant_df = self.build_X_and_var()
+
+        # re-index to match obs
+        quant_df = quant_df.reindex(obs.index)
+
+        X = quant_df.to_numpy()
+        var = pd.DataFrame(index=quant_df.columns)
 
         ########################################################################
         # Create and save AnnData object
@@ -299,16 +308,32 @@ class QuantificationController:
                 "instance_key": "cell",  # column in obs that points to the object ID
             }
 
-        adata = TableModel.parse(
-            adata,
-            region=self.connect_to_mask,
-            region_key="region",  # << name of the column in obs
-            instance_key="cell",  # << name of the column in obs with instance ids
-            overwrite_metadata=True,
-        )
+            adata = TableModel.parse(
+                adata,
+                region=self.connect_to_mask,
+                region_key="region",  # << name of the column in obs
+                instance_key="cell",  # << name of the column in obs with instance ids
+                overwrite_metadata=True,
+            )
+        else:
+            adata = TableModel.parse(
+                adata,
+                overwrite_metadata=True,
+            )
+
+        # add anndata to sdata
+        self.sdata[self.table_name] = adata
+
+        # add quantification of qc if requested
+        if self.quantify_qc:
+            qc_masker = QcShapeMasker(
+                table_name = self.table_name,
+                qc_prefix = self.qc_prefix,
+                write_to_disk = False
+            )
+            qc_masker.run(self.sdata)
 
         try:
-            self.sdata[self.table_name] = adata
             self.sdata.write_element(self.table_name)
             logger.success(
                 f"Quantification complete. Table '{self.table_name}' written to {self.sdata.path}"

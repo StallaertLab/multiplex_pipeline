@@ -45,6 +45,9 @@ class CoreCuttingSettings(BaseModel):
     transfer_cleanup_enabled: bool
     core_cleanup_enabled: bool
 
+class QcSettings(BaseModel):
+    prefix: str
+
 class QuantTask(BaseModel):
     name: str
     masks: Dict[str, str]
@@ -104,6 +107,7 @@ class AnalysisConfig(BaseModel):
     core_detection: CoreDetectionSettings
     core_cutting: CoreCuttingSettings
     additional_elements: List[Annotated[PipelineStep, Field(discriminator="type")]]
+    qc: QcSettings
     quant: List[QuantTask]
     sdata_storage: StorageSettings
 

@@ -39,6 +39,7 @@ class InstansegSegmenter(BaseOp):
         resolve_cell_and_nucleus: bool = True
         cleanup_fragments: bool = True
         clean_cache: bool = True
+        normalise: bool = True
 
         # warn the user about any unrecognized parameters
         model_config = ConfigDict(extra="forbid")
