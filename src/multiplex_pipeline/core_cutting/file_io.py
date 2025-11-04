@@ -233,6 +233,7 @@ class LocalFileStrategy(FileAvailabilityStrategy):
 
     def cleanup(self, path: Path) -> None:
         """Local files are left untouched."""
+        pass
 
 
 # Supporting file I/O functions

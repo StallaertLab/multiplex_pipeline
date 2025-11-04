@@ -91,13 +91,13 @@ class CorePreparationController:
                 write_temp_tiff(core_img, core_id, channel, self.temp_dir)
                 self.ready_cores.setdefault(core_id, set()).add(channel)
                 logger.debug(
-                    f"Cut and saved core {core_id}, channel {channel}"
+                    f"Cut and saved core {core_id}, channel {channel}."
                 )
         finally:
             # Ensures file is closed even if something fails mid-cut
             if hasattr(store, "close"):
                 store.close()
-                logger.debug(f"Closed file handle for channel {channel}")
+                logger.debug(f"Closed file handle for channel {channel}.")
 
     def try_assemble_ready_cores(self):
         """Assemble any cores whose channels are complete."""
@@ -123,7 +123,8 @@ class CorePreparationController:
                 if channel in self.completed_channels:
                     continue
 
-                if self.file_strategy.is_channel_ready(channel,path):
+                if self.file_strategy.is_channel_ready(channel, path):
+                    logger.info(f'Channel {channel} file available at {path}.')
                     self.cut_channel(channel, path)
                     self.file_strategy.cleanup(Path(path))
                     self.completed_channels.add(channel)

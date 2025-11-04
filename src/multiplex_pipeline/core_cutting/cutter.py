@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from skimage.draw import polygon as sk_polygon
+import cv2
 
 
 class CoreCutter:
@@ -46,32 +46,36 @@ class CoreCutter:
         # Extract subarray
         subarray = array[y0m:y1m, x0m:x1m]
 
-        # Compute to numpy
-        if hasattr(subarray, "compute"):  # Dask array check
-            subarray = subarray.compute()
-
         if row["poly_type"] == "rectangle":
             return subarray
 
         elif row["poly_type"] == "polygon":
+
+            # Compute to numpy
+            if hasattr(subarray, "compute"):  # Dask array check
+                subarray = subarray.compute()
+
             # Load polygon coordinates and shift to local frame
             polygon = row["polygon_vertices"]  # assuming list of [y, x] pairs
+            poly_rc_local = polygon - np.array([y0m, x0m])[None, :]
+            poly_xy_int32 = np.round(poly_rc_local[:, [1, 0]]).astype(np.int32)
 
-            shifted_polygon = [(y - y0m, x - x0m) for y, x in polygon]
-            poly_y, poly_x = zip(*shifted_polygon)
+            
+            # poly_y, poly_x = zip(*shifted_polygon)
 
-            # Create polygon mask
-            rr, cc = sk_polygon(poly_y, poly_x, subarray.shape)
-            mask = np.zeros(subarray.shape, dtype=bool)
-            mask[rr, cc] = True
+            # # Create polygon mask
+            # rr, cc = sk_polygon(poly_y, poly_x, subarray.shape)
 
             # Apply mask
-            masked_array = np.full(
-                subarray.shape, self.mask_value, dtype=subarray.dtype
-            )
-            masked_array[mask] = subarray[mask]
+            mask = np.zeros(subarray.shape, np.uint8)
+            cv2.fillPoly(mask, [poly_xy_int32], 1)
+            subarray[mask == 0] = self.mask_value
+            # masked_array = np.full(
+            #     subarray.shape, self.mask_value, dtype=subarray.dtype
+            # )
+            # masked_array[rr,cc] = subarray[rr,cc]
 
-            return masked_array
+            return subarray
 
         else:
             raise ValueError(f"Unknown poly_type: {row['poly_type']}")
