@@ -89,14 +89,14 @@ class QuantificationController:
                     c: f"{c}_{mask_suffix}" for c in morph_df.columns if c != "label"
                 }
             )
-            morph_df = morph_df.set_index("label", drop=False)
+            morph_df = morph_df.set_index("label", drop=True)
             morph_dfs.append(morph_df)
 
         # create obs object
         obs = pd.concat(morph_dfs, axis=1, join="outer")
-
-        # Drop duplicate 'label' columns created by concat
-        obs = obs.loc[:, ~obs.columns.duplicated()]
+        obs.index.name = "label_int"
+        # keep labels as column too
+        obs.insert(0, "label", obs.index)
 
         return obs
 
@@ -174,12 +174,13 @@ class QuantificationController:
                         if c != "label"
                     }
                 )
-                df = df.set_index("label", drop=False)
+                df = df.set_index("label", drop=True)
                 quant_dfs.append(df)
 
         # create X
         quant_df = pd.concat(quant_dfs, axis=1, join="outer")
-        quant_df = quant_df.loc[:, ~quant_df.columns.duplicated()]
+        quant_df.index.name = "label_int"
+        quant_df.insert(0, "label", quant_df.index)
 
         return quant_df
 

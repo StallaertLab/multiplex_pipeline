@@ -31,7 +31,7 @@ def configure_logging(settings):
     """
 
     log_file = (
-        settings["log_dir"] / f"cores_cutting_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
+        settings.log_dir_path / f"cores_cutting_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
     )
 
     logger.remove()
@@ -86,7 +86,7 @@ def main():
     logger.info("Starting core cutting script.")
 
     # set image path
-    image_path = Path(settings["image_dir"])
+    image_path = settings.general.image_dir
 
     # setup Globus if requested
     if args.globus_config:
@@ -99,7 +99,7 @@ def main():
         tc = create_globus_tc(gc.client_id, gc.transfer_tokens)
 
         # if windows paths change to globus
-        if ":/" in settings["image_dir"] or ":\\" in settings["image_dir"]:
+        if ":/" in image_path or ":\\" in image_path:
             conv = GlobusPathConverter(layout=args.globus_home_setting)
             image_path = conv.windows_to_globus(image_path)
 
@@ -108,29 +108,25 @@ def main():
         gc = None
 
     # map channels to image paths
-    channel_map = discover_channels(
-        image_path,
-        include_channels=settings["include_channels"],
-        exclude_channels=settings["exclude_channels"],
-        use_markers=settings.get("use_markers"),
-        ignore_markers=settings.get("ignore_markers"),
-        gc=gc,
-    )
+    channel_map = discover_channels(image_path,
+                                    include_channels=settings.core_cutting.include_channels,
+                                    exclude_channels=settings.core_cutting.exclude_channels,
+                                    use_markers=settings.core_cutting.use_markers,
+                                    ignore_markers=settings.core_cutting.ignore_markers,
+                                    gc=gc)
 
     # get cores coordinates
-    df_path = settings["core_info_file_path"].with_suffix(".pkl")
+    df_path = settings.core_info_file_path.with_suffix('.pkl')
     df = pd.read_pickle(df_path)
 
     # build transfer map
-    transfer_cache_dir = settings["temp_dir"]
+    transfer_cache_dir = settings.temp_dir
     transfer_map = build_transfer_map(channel_map, transfer_cache_dir)
 
     # define file access
     if gc:
         # initialize Globus transfer
-        strategy = GlobusFileStrategy(
-            tc=tc, transfer_map=transfer_map, gc=gc, cleanup_enabled=True
-        )
+        strategy = GlobusFileStrategy(tc=tc, transfer_map=transfer_map, gc=gc, cleanup_enabled = True)
         # build a dict for transfered images
         image_paths = {
             ch: str(Path(transfer_cache_dir) / Path(remote).name)
@@ -143,15 +139,16 @@ def main():
 
     # setup cutting controller
     controller = CorePreparationController(
-        metadata_df=df,
-        image_paths=image_paths,
-        temp_dir=settings["cores_dir_tif"],
-        output_dir=settings["cores_dir_output"],
-        file_strategy=strategy,
-        margin=settings["core_cutting"]["margin"],
-        mask_value=settings["core_cutting"]["mask_value"],
-        max_pyramid_levels=settings["core_cutting"]["max_pyramid_level"],
-        chunk_size=settings["core_cutting"]["chunk_size"],
+        metadata_df = df, # df defines which cores to process
+        image_paths = channel_map, # defines which channels to use
+        temp_dir = settings.cores_dir_tif,
+        output_dir = settings.cores_dir_output,
+        file_strategy = strategy,
+        margin = settings.core_cutting.margin,
+        mask_value = settings.core_cutting.mask_value,
+        max_pyramid_levels = settings.sdata_storage.max_pyramid_level,
+        chunk_size = settings.sdata_storage.chunk_size,
+        downscale = settings.sdata_storage.chunk_size,
     )
 
     # run core cutting
