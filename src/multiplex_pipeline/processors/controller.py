@@ -56,17 +56,17 @@ class ResourceBuildingController:
         self.keep = keep
         self.overwrite = overwrite
 
-    def validate_elements_present(self):
+    def validate_elements_present(self, sdata):
         """Checks if all specified input elements exist in the sdata object.
 
         Raises:
             ValueError: If an input element is not found.
         """
         for src in self.input_names:
-            if src not in self.sdata:
+            if src not in sdata:
                 raise ValueError(f"Requested source mask '{src}' not found.")
 
-    def validate_resolution_present(self):
+    def validate_resolution_present(self, sdata):
         """Checks if inputs have the required resolution level.
 
         Raises:
@@ -74,7 +74,7 @@ class ResourceBuildingController:
                 resolution level.
         """
         for src in self.input_names:
-            el = self.sdata[src]
+            el = sdata[src]
             if len(el.items()) <= self.resolution_level:
                 logger.error(
                     f"Channel '{src}' does not have resolution level {self.resolution_level}."
@@ -86,13 +86,13 @@ class ResourceBuildingController:
             f"All channels have required resolution level: {self.resolution_level}"
         )
 
-    def validate_sdata_as_input(self):
+    def validate_sdata_as_input(self,sdata):
         """Runs all input validation checks."""
 
-        self.validate_elements_present()
-        self.validate_resolution_present()
+        self.validate_elements_present(sdata)
+        self.validate_resolution_present(sdata)
 
-    def prepare_to_overwrite(self):
+    def prepare_to_overwrite(self, sdata):
         """Handles existing output elements based on the `overwrite` flag.
 
         If an output name already exists and `overwrite` is False, it raises
@@ -103,7 +103,7 @@ class ResourceBuildingController:
         """
 
         for out_name in self.output_names:
-            if out_name in self.sdata:
+            if out_name in sdata:
                 if not self.overwrite:
                     message = f"Mask name '{out_name}' already exists in sdata. Please provide unique mask names."
                     logger.error(message)
@@ -112,10 +112,10 @@ class ResourceBuildingController:
                     logger.warning(
                         f"Mask name '{out_name}' already exists and will be overwritten."
                     )
-                    del self.sdata[out_name]
+                    del sdata[out_name]
                     logger.info(f"Existing element '{out_name}' deleted from sdata.")
-                    if out_name in [x.split('/')[-1] for x in self.sdata.elements_paths_on_disk()]:
-                        self.sdata.delete_element_from_disk(out_name)
+                    if out_name in [x.split('/')[-1] for x in sdata.elements_paths_on_disk()]:
+                        sdata.delete_element_from_disk(out_name)
                         logger.info(f"Existing element '{out_name}' deleted from disk.")
 
     def bring_to_max_resolution(self, el):
@@ -177,9 +177,6 @@ class ResourceBuildingController:
             The processed SpatialData object.
         """
 
-        # get sdata
-        self.sdata = sdata
-
         # validate builder settings
         in_list, out_list = self.builder.validate_io(
             inputs=self.input_names, outputs=self.output_names
@@ -188,19 +185,26 @@ class ResourceBuildingController:
         self.output_names = out_list
 
         # validate sdata as input
-        self.validate_sdata_as_input()
+        self.validate_sdata_as_input(sdata)
 
         # Handle overwiting
-        self.prepare_to_overwrite()
+        self.prepare_to_overwrite(sdata)
 
-        # Build the mask
+        # Build
         data_sources = [
             np.array(
-                sd.get_pyramid_levels(self.sdata[ch], n=self.resolution_level)
+                sd.get_pyramid_levels(sdata[ch], n=self.resolution_level)
             ).squeeze()
             for ch in self.input_names
         ]
+        # data_sources = [
+        #         sd.get_pyramid_levels(sdata[ch], n=self.resolution_level).squeeze()
+        #     for ch in self.input_names
+        # ]
         new_elements = self.builder.run(*data_sources)
+
+        # forced cleanup
+        del data_sources 
 
         if not isinstance(new_elements, Sequence):
             new_elements = [new_elements]
@@ -217,12 +221,15 @@ class ResourceBuildingController:
             # pack into the data model
             el_model = self.pack_into_model(el)
 
+            # forced cleanup
+            del el
+
             # put the data model into the sdata
-            self.sdata[el_name] = el_model
+            sdata[el_name] = el_model
 
             # save to disk if requested
             if self.keep:
-                self.sdata.write_element(el_name)
+                sdata.write_element(el_name)
                 logger.info(f"Mask '{el_name}' has been saved to disk.")
 
-        return self.sdata
+        return sdata

@@ -280,6 +280,9 @@ class QuantificationController:
 
         quant_df = self.build_X_and_var()
 
+        # cleanup
+        self.masks = None
+
         # re-index to match obs
         quant_df = quant_df.reindex(obs.index)
 
