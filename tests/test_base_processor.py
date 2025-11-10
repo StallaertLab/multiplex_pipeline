@@ -1,35 +1,63 @@
 # tests/test_baseop.py
 from typing import Any, Mapping
+from pydantic import ConfigDict
 
 import pytest
 
-from multiplex_pipeline.processors.base import BaseOp
+from multiplex_pipeline.processors.base import BaseOp, OutputType, ProcessorParamsBase
 
-
-# ---- Test helper: minimal concrete class ----
+# Test helper: minimal correct class
 class DummyOp(BaseOp):
-    # simulate what your @register decorator would set
+    # simulate what @register decorator would set
     kind = "unit_test_kind"
     type_name = "dummy"
+    OUTPUT_TYPE = OutputType.LABELS
 
     EXPECTED_INPUTS = 1
     EXPECTED_OUTPUTS = 1
 
-    def validate_config(self, cfg: Mapping[str, Any]) -> None:
-        # accept anything for these tests
-        return
+    class Params(ProcessorParamsBase):
+
+        a: int = 0
+        b: str = ''
+
+        model_config = ConfigDict(extra="forbid")
 
     def run(self, *sources):
         return sources
 
+# Test helper: minimal class, incorrect OUTPUT_TYPE
+class DummyIncorrectOp(BaseOp):
+    # simulate what @register decorator would set
+    kind = "unit_test_kind"
+    type_name = "dummy"
+    OUTPUT_TYPE = 'LABELS'
 
-# ----------------- cfg / init -----------------
+    EXPECTED_INPUTS = 1
+    EXPECTED_OUTPUTS = 1
+
+    def run(self, *sources):
+        return sources
+
+###############################################################################
+# cfg / init
+
+def test_invalid_output_type_raises():
+    with pytest.raises(TypeError) as ei:
+        DummyIncorrectOp()
+    assert "OUTPUT_TYPE must be an OutputType enum" in str(ei.value)
+
 def test_cfg_is_stored_as_dict():
     op = DummyOp(a=1, b="x")
     assert op.cfg == {"a": 1, "b": "x"}
 
+def test_invalid_parameters_raises():
+    with pytest.raises(ValueError) as ei:
+        op = DummyOp(a=1, c="x")
+        assert "Parameters for {op.type_name} are not correct" in str(ei.value)
 
-# -------------- _normalize_names --------------
+###############################################################################
+# _normalize_names 
 @pytest.mark.parametrize(
     "value, expected",
     [
@@ -49,8 +77,8 @@ def test_normalize_names_invalid_raises(bad):
         DummyOp._normalize_names(bad, "outputs")
 
 
-# ---------------- validate_io OK --------------
-def test_validate_io_exact_match():
+###############################################################################
+# validate_io
     op = DummyOp()
     ins, outs = op.validate_io(inputs="src", outputs="dst")
     assert ins == ["src"]
@@ -63,8 +91,8 @@ def test_validate_io_accepts_list_syntax():
     assert ins == ["src"]
     assert outs == ["dst"]
 
-
-# ------------- validate_io errors -------------
+###############################################################################
+# validate_io errors
 def test_validate_io_wrong_input_count_raises():
     class TwoIn(DummyOp):
         EXPECTED_INPUTS = 2
@@ -88,8 +116,8 @@ def test_validate_io_wrong_output_count_raises():
     with pytest.raises(ValueError):
         op.validate_io(inputs="a", outputs=["x", "y", "z"])  # too many
 
-
-# ------------- validate_io skip checks --------
+###############################################################################
+# validate_io skip checks
 def test_validate_io_skips_when_none():
     class Flexible(DummyOp):
         EXPECTED_INPUTS = None
@@ -101,20 +129,20 @@ def test_validate_io_skips_when_none():
     assert ins == ["a", "b", "c"]
     assert outs == ["x", "y"]
 
-
-# --------------- __repr__ / __str__ ----------
+###############################################################################
+#  __repr__ / __str__ 
 def test_repr_includes_kind_type_and_cfg():
-    op = DummyOp(alpha=42)
+    op = DummyOp(a=42)
     r = repr(op)
     assert "DummyOp" in r
     assert "unit_test_kind" in r
     assert "dummy" in r
-    assert "alpha" in r
+    assert "a" in r
 
 
 def test_str_is_human_friendly():
-    op = DummyOp(beta=True)
+    op = DummyOp(b='bla')
     s = str(op)
     # "kind:type cfg"
     assert "unit_test_kind:dummy" in s
-    assert "beta" in s
+    assert "b" in s

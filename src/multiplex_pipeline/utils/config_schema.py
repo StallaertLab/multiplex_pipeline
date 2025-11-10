@@ -51,7 +51,7 @@ class QcSettings(BaseModel):
 class QuantTask(BaseModel):
     name: str
     masks: Dict[str, str]
-    layer_connection: str = None
+    layer_connection: str | None = None
 
 class StorageSettings(BaseModel):
     chunk_size: List[int]
