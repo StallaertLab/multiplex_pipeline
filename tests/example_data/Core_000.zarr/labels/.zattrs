@@ -1,0 +1,8 @@
+{
+    "labels": [
+        "instanseg_nucleus",
+        "instanseg_cell",
+        "ring",
+        "cytoplasm"
+    ]
+}

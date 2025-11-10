@@ -1,0 +1,30 @@
+{
+    "_index": "label_int",
+    "column-order": [
+        "label",
+        "area_nucleus",
+        "eccentricity_nucleus",
+        "solidity_nucleus",
+        "perimeter_nucleus",
+        "euler_number_nucleus",
+        "area_cell",
+        "eccentricity_cell",
+        "solidity_cell",
+        "perimeter_cell",
+        "euler_number_cell",
+        "area_ring",
+        "eccentricity_ring",
+        "solidity_ring",
+        "perimeter_ring",
+        "euler_number_ring",
+        "area_cyto",
+        "eccentricity_cyto",
+        "solidity_cyto",
+        "perimeter_cyto",
+        "euler_number_cyto",
+        "region",
+        "cell"
+    ],
+    "encoding-type": "dataframe",
+    "encoding-version": "0.2.0"
+}
