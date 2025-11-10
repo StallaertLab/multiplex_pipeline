@@ -75,6 +75,13 @@ class CoreAssembler:
         images = {}
         used_channels = []
 
+        # initialize object
+        sdata = SpatialData()   
+
+        # save to drive
+        output_path = os.path.join(self.output_dir, f"{core_id}.zarr")
+        sdata.write(output_path, overwrite=True)     
+
         for fname in channel_files:
             channel_name = os.path.splitext(fname)[0]
 
@@ -95,17 +102,15 @@ class CoreAssembler:
                 chunks=self.chunk_size,
             )
 
-            images[channel_name] = image_model
+            sdata[channel_name] = image_model
+            sdata.write_element(channel_name, overwrite = True)
             used_channels.append(channel_name)
+
+            # release memory
+            del sdata[channel_name]
 
         # log the info
         logger.info(f"Core '{core_id}' assembled with channels: {used_channels}")
-
-        # Construct and write SpatialData
-        sdata = SpatialData(images=images)
-
-        output_path = os.path.join(self.output_dir, f"{core_id}.zarr")
-        sdata.write(output_path, overwrite=True)
 
         if self.cleanup:
             self._cleanup_core_files(core_path, used_channels)
