@@ -140,7 +140,7 @@ def main():
     # setup cutting controller
     controller = CorePreparationController(
         metadata_df = df, # df defines which cores to process
-        image_paths = channel_map, # defines which channels to use
+        image_paths = image_paths,
         temp_dir = settings.cores_dir_tif,
         output_dir = settings.cores_dir_output,
         file_strategy = strategy,
