@@ -59,14 +59,10 @@ def scan_channels_from_list(
             marker = "DAPI"
         else:
             parts = fname.split("_")
-            if len(parts) > 4:
-                h_parts = parts[4].split("-")
-                marker = "-".join(h_parts[:-1]) if len(h_parts) > 1 else h_parts[0]
-            else:
-                raise ValueError(
-                    f"Cannot extract marker from filename '{fname}'. "
-                    "Expected at least 5 underscore-separated parts."
-                )
+
+            h_parts = parts[4].split("-")
+            marker = "-".join(h_parts[:-1]) if len(h_parts) > 1 else h_parts[0]
+
 
         channel_name = f"{round_num:03d}_{marker}"
         image_dict[channel_name] = filepath
@@ -96,7 +92,7 @@ def scan_channels_from_list(
         included = [name for _, name in items if name in include_channels]
         if included:
             for name in included:
-                result[name] = image_dict[name]
+                result[base] = image_dict[name]
             continue
 
         items = [(r, name) for r, name in items if name not in exclude_channels]
