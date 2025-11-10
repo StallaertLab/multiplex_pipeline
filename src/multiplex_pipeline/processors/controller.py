@@ -151,7 +151,7 @@ class ResourceBuildingController:
         """
         if self.builder.OUTPUT_TYPE.value == "labels":
             el_model = Labels2DModel.parse(
-                data=el.astype(int),
+                data=el.astype(np.int32),
                 dims=("y", "x"),
                 scale_factors=[self.downscale] * (self.pyramid_levels - 1),
                 chunks=self.chunk_size[1:],

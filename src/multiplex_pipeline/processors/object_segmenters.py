@@ -87,7 +87,7 @@ class InstansegSegmenter(BaseOp):
         labeled_output, _ = self.model.eval_medium_image(in_image, **dict(self.params))
 
         # extract result
-        segm_arrays = [np.array(x).astype(int) for x in labeled_output[0, :, :, :]]
+        segm_arrays = [np.array(x).astype(np.int32) for x in labeled_output[0, :, :, :]]
 
         # clean cuda cache
         if self.params.clean_cache:
