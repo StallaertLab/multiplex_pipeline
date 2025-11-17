@@ -25,7 +25,7 @@ def set_cuda(model_path):
     assert torch.cuda.is_available()
 
     device = torch.device("cuda")
-    sam2_checkpoint = "../checkpoints/sam2.1_hiera_large.pt"
+    sam2_checkpoint = "./sam2/checkpoints/sam2.1_hiera_large.pt"
     model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 
     return device, sam2_checkpoint, model_cfg
