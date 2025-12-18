@@ -114,7 +114,6 @@ def test_build_transfer_map_creates_posix_destinations_from_local_dir(tmp_path):
     assert m["CD3"][1].endswith("/work/local/CD3-02.ome.tif")
     assert m["DAPI"][1].endswith("/work/local/DAPI.ome.tif")
 
-
 def test_discover_channels_uses_globus_listing(monkeypatch):
     calls = {}
 
