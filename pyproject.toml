@@ -17,6 +17,7 @@ dependencies = [
     "globus-sdk>= 3.59.0",
     "imagecodecs>=2024.9.22",
     "loguru>=0.7.3",
+    "napari>=0.6.6",
     "numpy>2.0",
     "opencv-python>=4.11",
     "pandas>=2.3.0",
