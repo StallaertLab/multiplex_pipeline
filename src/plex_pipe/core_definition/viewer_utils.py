@@ -1,7 +1,6 @@
 """Napari viewer helpers for displaying and saving ROI layers."""
 
 import napari
-from qtpy.QtWidgets import QFileDialog
 
 from plex_pipe.core_definition.roi_utils import (
     get_visual_rectangles,
@@ -109,6 +108,15 @@ def save_rois_from_viewer(viewer, org_im_shape, req_level, save_path=None):
     Returns:
         None
     """
+
+    try:
+        from qtpy.QtWidgets import QFileDialog
+    except (ImportError, ModuleNotFoundError):
+        raise ImportError(
+            "This function requires qtpy, but it seems to be missing. "
+            "If you are running locally, try installing with: pip install 'plex_pipe[gui]'"
+        )
+
     if "cores" in viewer.layers:
 
         # get the saving path if not provided

@@ -17,7 +17,6 @@ dependencies = [
     "globus-sdk>= 3.59.0",
     "imagecodecs>=2024.9.22",
     "loguru>=0.7.3",
-    "napari>=0.6.6",
     "numpy>2.0",
     "opencv-python>=4.11",
     "pandas>=2.3.0",
@@ -43,6 +42,19 @@ segmentation-gpu = [
     "imagecodecs>=2024.6.1",
     "instanseg-torch>=0.0.9",
     "torch",
+]
+gui = [
+    "napari>=0.6.6",
+    "qtpy>=2.4.0",      
+    "PyQt5>=5.15.2",       
+]
+dev = [
+    "tox>=4.12.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0"
+]
+all = [
+    "plex_pipe[segmentation-gpu,gui,dev]"
 ]
 
 [tool.setuptools]
