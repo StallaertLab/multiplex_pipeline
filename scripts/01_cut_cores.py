@@ -53,6 +53,7 @@ def parse_args():
         help="Use remote analysis directory as base.",
     )
     parser.add_argument("--globus_config", help="Path to Globus config.")
+    
     parser.add_argument(
         "--from_collection",
         help="Key for source collection in Globus config.",
