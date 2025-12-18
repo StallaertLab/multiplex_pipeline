@@ -71,7 +71,8 @@ def scan_channels_from_list(
     image_dict = dict(sorted(image_dict.items()))
 
     if not image_dict:
-        raise ValueError("No valid .0.4 OME-TIFF files found.")
+        msg = f"No valid .0.4 OME-TIFF files found in {files}"
+        raise ValueError(msg)
 
     logger.info(f"Discovered {len(image_dict)} channels:")
     for key, val in image_dict.items():

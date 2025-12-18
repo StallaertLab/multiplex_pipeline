@@ -63,14 +63,14 @@ def redo_bbox_layer(
     viewer.add_shapes(
         data,
         shape_type="rectangle",
-        edge_color="red",
+        edge_color="yellow",
         face_color="transparent",
         edge_width=2,
         name="bounding_boxes",
         text={
             "string": text,
-            "size": 12,
-            "color": "red",
+            "size": 20,
+            "color": "yellow",
             "anchor": "upper_left",
         },
     )

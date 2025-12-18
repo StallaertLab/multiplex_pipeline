@@ -40,6 +40,7 @@ class InstansegSegmenter(BaseOp):
         cleanup_fragments: bool = True
         clean_cache: bool = True
         normalise: bool = True
+        overlap: int = 80
 
         # warn the user about any unrecognized parameters
         model_config = ConfigDict(extra="forbid")
@@ -173,6 +174,6 @@ class Cellpose4Segmenter(BaseOp):
         in_image = self.prepare_input(in_image)
 
         # run segmentation
-        mask, *_ = self.model.eval(in_image, **self.params)
+        mask, *_ = self.model.eval(in_image, **dict(self.params))
 
         return mask

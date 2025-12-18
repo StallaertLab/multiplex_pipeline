@@ -315,7 +315,7 @@ def read_in_saved_rois(save_path, IM_LEVEL):
     Read in the saved rois from the given path.
     """
     if os.path.exists(save_path.with_suffix(".pkl")):
-        with open(save_path.with_suffix(".pkl")) as f:
+        with open(save_path.with_suffix(".pkl"), "rb") as f:
             df = pkl.load(f)
         rect_list = get_visual_rectangles(df, IM_LEVEL)
         poly_list = [
