@@ -11,6 +11,7 @@ mock_qtpy.QtWidgets.QFileDialog.getSaveFileName.return_value = ("test.pkl", "fil
 #    This prevents the actual 'import qtpy' from running or failing
 sys.modules["qtpy"] = mock_qtpy
 sys.modules["qtpy.QtWidgets"] = mock_qtpy.QtWidgets
+sys.modules["napari"]=MagicMock()
 
 # 3. NOW import your module
 #    It will use the fake qtpy instead of looking for the real one
