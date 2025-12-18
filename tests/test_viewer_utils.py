@@ -1,10 +1,23 @@
+import sys
+from unittest.mock import MagicMock, patch, call
+
+# --- THE MAGIC HEADER ---
+# 1. Create a fake qtpy module
+mock_qtpy = MagicMock()
+mock_qtpy.QtWidgets.QFileDialog.getOpenFileName.return_value = ("test.csv", "filter")
+mock_qtpy.QtWidgets.QFileDialog.getSaveFileName.return_value = ("test.pkl", "filter")
+
+# 2. Inject it into sys.modules
+#    This prevents the actual 'import qtpy' from running or failing
+sys.modules["qtpy"] = mock_qtpy
+sys.modules["qtpy.QtWidgets"] = mock_qtpy.QtWidgets
+
+# 3. NOW import your module
+#    It will use the fake qtpy instead of looking for the real one
+import plex_pipe.core_definition.viewer_utils as viewer_utils
 import pytest
 import numpy as np
 import pandas as pd
-from unittest.mock import MagicMock, patch, call
-
-# Import module under test
-import plex_pipe.core_definition.viewer_utils as viewer_utils
 
 # --- Fixtures ---
 
