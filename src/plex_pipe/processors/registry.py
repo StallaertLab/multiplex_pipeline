@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Type
 
 from pydantic import BaseModel
 
-from multiplex_pipeline.processors.base import BaseOp
+from plex_pipe.processors.base import BaseOp
 
 
 @dataclass

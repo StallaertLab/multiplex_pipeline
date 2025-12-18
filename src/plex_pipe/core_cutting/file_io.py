@@ -20,7 +20,7 @@ from requests.exceptions import (
 )
 from tifffile import imread, imwrite
 
-from multiplex_pipeline.utils.globus_utils import (
+from plex_pipe.utils.globus_utils import (
     GlobusConfig,
     create_globus_tc,
 )

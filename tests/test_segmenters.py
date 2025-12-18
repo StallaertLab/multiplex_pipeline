@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 # Import module under test
 # We assume the registry decorator logic works or is tested elsewhere,
 # so we import the classes directly.
-from multiplex_pipeline.processors.object_segmenters import (
+from plex_pipe.processors.object_segmenters import (
     InstansegSegmenter,
     Cellpose4Segmenter
 )
@@ -174,7 +174,7 @@ def test_cellpose_input_truncation(mock_cellpose_lib):
     # Pass 3 images
     in1 = np.zeros((10, 10))
     
-    with patch("multiplex_pipeline.processors.object_segmenters.logger") as mock_logger:
+    with patch("plex_pipe.processors.object_segmenters.logger") as mock_logger:
         segmenter.run(in1, in1, in1)
         
         # Should warn

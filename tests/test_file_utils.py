@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from globus_sdk import GlobusAPIError
 
-import multiplex_pipeline.utils.file_utils as file_utils
+import plex_pipe.utils.file_utils as file_utils
 
 def test_change_to_wsl_path():
     """

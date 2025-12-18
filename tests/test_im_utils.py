@@ -3,7 +3,7 @@ import numpy as np
 from unittest.mock import MagicMock, patch
 
 # Import module under test
-import multiplex_pipeline.utils.im_utils as im_utils
+import plex_pipe.utils.im_utils as im_utils
 
 # --- Fixtures ---
 
@@ -25,8 +25,8 @@ def mock_zarr_structure():
     }
 
 
-@patch("multiplex_pipeline.utils.im_utils.imread")
-@patch("multiplex_pipeline.utils.im_utils.zarr.open")
+@patch("plex_pipe.utils.im_utils.imread")
+@patch("plex_pipe.utils.im_utils.zarr.open")
 def test_get_zarr_levels_num(mock_zarr_open, mock_imread, mock_zarr_structure):
     """
     Verifies it correctly counts the number of resolution levels in OME-Zarr metadata.
@@ -41,7 +41,7 @@ def test_get_zarr_levels_num(mock_zarr_open, mock_imread, mock_zarr_structure):
     # We defined 3 datasets in the fixture
     assert count == 3
 
-@patch("multiplex_pipeline.utils.im_utils.get_small_image")
+@patch("plex_pipe.utils.im_utils.get_small_image")
 def test_prepare_rgb_image_math(mock_get_small):
     """
     Verifies the math of contrast stretching and RGB conversion.

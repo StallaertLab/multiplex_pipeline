@@ -2,7 +2,7 @@ import pytest
 import copy
 from unittest.mock import MagicMock, patch
 
-import multiplex_pipeline.utils.config_loaders as config_loaders
+import plex_pipe.utils.config_loaders as config_loaders
 
 @pytest.fixture
 def normalization_config():

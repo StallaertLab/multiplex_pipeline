@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from multiplex_pipeline.core_preparation.channel_scanner import (
+from plex_pipe.core_preparation.channel_scanner import (
     discover_channels,
 )
 
@@ -37,7 +37,7 @@ def main():
 
     gc = None
     if args.config_dir:
-        from multiplex_pipeline.utils.globus_utils import GlobusConfig
+        from plex_pipe.utils.globus_utils import GlobusConfig
 
         gc = GlobusConfig.from_config_files(args.config_dir)
 

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch, call, ANY
 from globus_sdk import GlobusAPIError, GlobusConnectionError
 
 # Import module under test
-import multiplex_pipeline.core_cutting.file_io as file_io
+import plex_pipe.core_cutting.file_io as file_io
 
 # --- Fixtures ---
 
@@ -52,7 +52,7 @@ def test_globus_submit_success(mock_tc, mock_globus_config, transfer_map):
     # pending item structure: (task_id, local_path, channel)
     assert strategy.pending[0] == ("task-123", "/local/dapi.tif", "DAPI")
 
-@patch("multiplex_pipeline.core_cutting.file_io.time.sleep")
+@patch("plex_pipe.core_cutting.file_io.time.sleep")
 def test_globus_submit_retry_logic(mock_sleep, mock_tc, mock_globus_config):
     """
     Critical Test: Verifies that transient errors (e.g., 503 Service Unavailable)
@@ -89,7 +89,7 @@ def test_globus_submit_retry_logic(mock_sleep, mock_tc, mock_globus_config):
     # Verify it ultimately succeeded and stored the task
     assert strategy.pending[0][0] == "task-retry-success"
 
-@patch("multiplex_pipeline.core_cutting.file_io.time.sleep")
+@patch("plex_pipe.core_cutting.file_io.time.sleep")
 def test_globus_submit_exhausted_retries(mock_sleep, mock_tc, mock_globus_config):
     """
     Verifies that after MAX_TRIES, the code raises a RuntimeError.
@@ -188,7 +188,7 @@ def test_local_strategy(tmp_path):
 
 # --- Tests for Helper Functions ---
 
-@patch("multiplex_pipeline.core_cutting.file_io.create_globus_tc")
+@patch("plex_pipe.core_cutting.file_io.create_globus_tc")
 def test_list_globus_files_filtering(mock_create_tc, mock_globus_config):
     """
     Verifies that list_globus_files correctly filters for .ome.tif files
@@ -210,9 +210,9 @@ def test_list_globus_files_filtering(mock_create_tc, mock_globus_config):
     assert len(files) == 2
     assert "/remote/path/image1.ome.tif" in files[0] # Checks full path construction
 
-@patch("multiplex_pipeline.core_cutting.file_io.imread")
-@patch("multiplex_pipeline.core_cutting.file_io.da.from_zarr")
-@patch("multiplex_pipeline.core_cutting.file_io.zarr.open")
+@patch("plex_pipe.core_cutting.file_io.imread")
+@patch("plex_pipe.core_cutting.file_io.da.from_zarr")
+@patch("plex_pipe.core_cutting.file_io.zarr.open")
 def test_read_ome_tiff(mock_zarr_open, mock_da, mock_imread):
     """
     Verifies that OME-TIFFs are opened as Zarr stores for lazy loading.

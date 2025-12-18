@@ -7,8 +7,8 @@ from pathlib import Path
 import spatialdata as sd
 from loguru import logger
 
-from multiplex_pipeline.utils.config_loaders import load_analysis_settings
-from multiplex_pipeline.object_quantification.controller import QuantificationController
+from plex_pipe.utils.config_loaders import load_analysis_settings
+from plex_pipe.object_quantification.controller import QuantificationController
 
 def configure_logging(settings):
     """

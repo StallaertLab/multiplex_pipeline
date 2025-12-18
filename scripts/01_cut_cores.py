@@ -6,20 +6,20 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from multiplex_pipeline.core_cutting.channel_scanner import (
+from plex_pipe.core_cutting.channel_scanner import (
     build_transfer_map,
     discover_channels,
 )
-from multiplex_pipeline.core_cutting.controller import (
+from plex_pipe.core_cutting.controller import (
     CorePreparationController,
 )
-from multiplex_pipeline.core_cutting.file_io import (
+from plex_pipe.core_cutting.file_io import (
     GlobusFileStrategy,
     LocalFileStrategy,
 )
-from multiplex_pipeline.utils.config_loaders import load_analysis_settings
-from multiplex_pipeline.utils.file_utils import GlobusPathConverter
-from multiplex_pipeline.utils.globus_utils import (
+from plex_pipe.utils.config_loaders import load_analysis_settings
+from plex_pipe.utils.file_utils import GlobusPathConverter
+from plex_pipe.utils.globus_utils import (
     GlobusConfig,
     create_globus_tc,
 )

@@ -10,7 +10,7 @@ import torch
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 from sam2.build_sam import build_sam2
 
-from multiplex_pipeline.utils.im_utils import prepare_rgb_image
+from plex_pipe.utils.im_utils import prepare_rgb_image
 
 
 def set_cuda(model_path):

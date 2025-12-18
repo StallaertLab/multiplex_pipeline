@@ -4,11 +4,11 @@ from pathlib import Path
 
 from loguru import logger
 
-from multiplex_pipeline.core_cutting.file_io import (
+from plex_pipe.core_cutting.file_io import (
     list_globus_files,
     list_local_files,
 )
-from multiplex_pipeline.utils.globus_utils import (
+from plex_pipe.utils.globus_utils import (
     GlobusConfig,
 )
 

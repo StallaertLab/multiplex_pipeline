@@ -3,7 +3,7 @@ import numpy as np
 from unittest.mock import MagicMock, patch, ANY
 
 # Import module under test
-from multiplex_pipeline.processors.mask_builders import (
+from plex_pipe.processors.mask_builders import (
     SubtractionBuilder,
     MultiplicationBuilder,
     RingBuilder,
@@ -127,9 +127,9 @@ def test_blob_builder_params():
     builder = BlobBuilder(work_shape=(100, 100))
     assert builder.params.work_shape == (100, 100)
 
-@patch("multiplex_pipeline.processors.mask_builders.resize")
-@patch("multiplex_pipeline.processors.mask_builders.opening")
-@patch("multiplex_pipeline.processors.mask_builders.closing")
+@patch("plex_pipe.processors.mask_builders.resize")
+@patch("plex_pipe.processors.mask_builders.opening")
+@patch("plex_pipe.processors.mask_builders.closing")
 def test_blob_builder_workflow(mock_closing, mock_opening, mock_resize):
     """
     Verifies the pipeline sequence:

@@ -6,7 +6,7 @@ from loguru import logger
 from skimage.transform import resize
 from spatialdata.models import Image2DModel, Labels2DModel
 
-from multiplex_pipeline.processors.base import BaseOp
+from plex_pipe.processors.base import BaseOp
 
 
 class ResourceBuildingController:

@@ -10,8 +10,8 @@ from loguru import logger
 from skimage.measure import regionprops_table
 from spatialdata.models import TableModel
 
-from multiplex_pipeline.utils.im_utils import calculate_median
-from multiplex_pipeline.object_quantification.qc_shape_masker import QcShapeMasker
+from plex_pipe.utils.im_utils import calculate_median
+from plex_pipe.object_quantification.qc_shape_masker import QcShapeMasker
 
 
 class QuantificationController:

@@ -1,7 +1,7 @@
 import pytest
 
-import multiplex_pipeline.core_cutting.channel_scanner as channel_scanner
-from multiplex_pipeline.core_cutting.channel_scanner import (
+import plex_pipe.core_cutting.channel_scanner as channel_scanner
+from plex_pipe.core_cutting.channel_scanner import (
     scan_channels_from_list,
     discover_channels,
     build_transfer_map,

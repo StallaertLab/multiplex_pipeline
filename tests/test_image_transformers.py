@@ -3,7 +3,7 @@ import numpy as np
 from unittest.mock import MagicMock, patch
 
 # Import classes under test
-from multiplex_pipeline.processors.image_transformers import (
+from plex_pipe.processors.image_transformers import (
     Normalize,
     DenoiseWithMedian,
     MeanOfImages

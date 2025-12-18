@@ -4,8 +4,8 @@ import numpy as np
 from unittest.mock import MagicMock, patch, call
 
 # Import module under test
-from multiplex_pipeline.core_cutting.controller import CorePreparationController as controller
-from multiplex_pipeline.core_cutting.file_io import FileAvailabilityStrategy
+from plex_pipe.core_cutting.controller import CorePreparationController as controller
+from plex_pipe.core_cutting.file_io import FileAvailabilityStrategy
 
 # --- Fixtures ---
 
@@ -29,11 +29,11 @@ def mock_dependencies():
     """
     Mocks Cutter, Assembler, and File Strategy.
     """
-    with patch("multiplex_pipeline.core_cutting.controller.CoreCutter") as MockCutter, \
-         patch("multiplex_pipeline.core_cutting.controller.CoreAssembler") as MockAssembler, \
-         patch("multiplex_pipeline.core_cutting.controller.read_ome_tiff") as mock_read, \
-         patch("multiplex_pipeline.core_cutting.controller.write_temp_tiff") as mock_write, \
-         patch("multiplex_pipeline.core_cutting.controller.os.makedirs"):
+    with patch("plex_pipe.core_cutting.controller.CoreCutter") as MockCutter, \
+         patch("plex_pipe.core_cutting.controller.CoreAssembler") as MockAssembler, \
+         patch("plex_pipe.core_cutting.controller.read_ome_tiff") as mock_read, \
+         patch("plex_pipe.core_cutting.controller.write_temp_tiff") as mock_write, \
+         patch("plex_pipe.core_cutting.controller.os.makedirs"):
         
         # Setup specific mock behaviors
         mock_strategy = MagicMock(spec=FileAvailabilityStrategy)

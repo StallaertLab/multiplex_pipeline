@@ -5,9 +5,9 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from multiplex_pipeline.core_cutting.assembler import CoreAssembler
-from multiplex_pipeline.core_cutting.cutter import CoreCutter
-from multiplex_pipeline.core_cutting.file_io import (
+from plex_pipe.core_cutting.assembler import CoreAssembler
+from plex_pipe.core_cutting.cutter import CoreCutter
+from plex_pipe.core_cutting.file_io import (
     FileAvailabilityStrategy,
     read_ome_tiff,
     write_temp_tiff,

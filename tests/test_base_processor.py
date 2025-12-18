@@ -4,7 +4,7 @@ from pydantic import ConfigDict
 
 import pytest
 
-from multiplex_pipeline.processors.base import BaseOp, OutputType, ProcessorParamsBase
+from plex_pipe.processors.base import BaseOp, OutputType, ProcessorParamsBase
 
 # Test helper: minimal correct class
 class DummyOp(BaseOp):

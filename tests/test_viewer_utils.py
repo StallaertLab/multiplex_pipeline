@@ -4,7 +4,7 @@ import pandas as pd
 from unittest.mock import MagicMock, patch, call
 
 # Import module under test
-import multiplex_pipeline.core_definition.viewer_utils as viewer_utils
+import plex_pipe.core_definition.viewer_utils as viewer_utils
 
 # --- Fixtures ---
 
@@ -90,9 +90,9 @@ def test_redo_bbox_layer(mock_viewer):
 
 # --- Tests for Saving/Loading Logic ---
 
-@patch("multiplex_pipeline.core_definition.viewer_utils.read_in_saved_rois")
-@patch("multiplex_pipeline.core_definition.viewer_utils.redo_bbox_layer")
-@patch("multiplex_pipeline.core_definition.viewer_utils.redo_cores_layer")
+@patch("plex_pipe.core_definition.viewer_utils.read_in_saved_rois")
+@patch("plex_pipe.core_definition.viewer_utils.redo_bbox_layer")
+@patch("plex_pipe.core_definition.viewer_utils.redo_cores_layer")
 def test_display_saved_rois_found(mock_redo_cores, mock_redo_bbox, mock_read, mock_viewer, mock_roi_data):
     """
     Scenario: ROIs exist on disk.
@@ -106,7 +106,7 @@ def test_display_saved_rois_found(mock_redo_cores, mock_redo_bbox, mock_read, mo
     mock_redo_bbox.assert_called_once_with(mock_viewer, rect_list, df["core_name"].tolist())
     mock_redo_cores.assert_called_once_with(mock_viewer, poly_list, shape_type=df.poly_type.to_list())
 
-@patch("multiplex_pipeline.core_definition.viewer_utils.read_in_saved_rois")
+@patch("plex_pipe.core_definition.viewer_utils.read_in_saved_rois")
 def test_display_saved_rois_empty(mock_read, mock_viewer):
     """
     Scenario: No ROIs found (empty return).
@@ -120,9 +120,9 @@ def test_display_saved_rois_empty(mock_read, mock_viewer):
     mock_viewer.add_shapes.assert_called_with(data=[], name="cores")
     assert "No previous rois found" in mock_viewer.status
 
-@patch("multiplex_pipeline.core_definition.viewer_utils.QFileDialog.getSaveFileName")
-@patch("multiplex_pipeline.core_definition.viewer_utils.prepare_poly_df_for_saving")
-@patch("multiplex_pipeline.core_definition.viewer_utils.get_visual_rectangles")
+@patch("plex_pipe.core_definition.viewer_utils.QFileDialog.getSaveFileName")
+@patch("plex_pipe.core_definition.viewer_utils.prepare_poly_df_for_saving")
+@patch("plex_pipe.core_definition.viewer_utils.get_visual_rectangles")
 def test_save_rois_from_viewer_workflow(mock_get_rects, mock_prep_df, mock_dialog, mock_viewer, mock_roi_data):
     """
     CRITICAL INTEGRATION TEST: Verifies the full save workflow.

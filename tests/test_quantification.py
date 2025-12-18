@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 import spatialdata as sd
 import shutil
-from multiplex_pipeline.object_quantification.controller import QuantificationController 
+from plex_pipe.object_quantification.controller import QuantificationController 
 
 @pytest.fixture(scope="session")
 def example_sdata_copy(tmp_path_factory):

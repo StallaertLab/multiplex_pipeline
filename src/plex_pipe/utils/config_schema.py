@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Union, Literal, Type, Annotated, TYPE_CHECKING
 
 from pydantic import BaseModel, Field, create_model, model_validator, ValidationInfo
-from multiplex_pipeline.processors.registry import REGISTRY, Kind
+from plex_pipe.processors.registry import REGISTRY, Kind
 
 if TYPE_CHECKING:
     from spatialdata import SpatialData

@@ -6,12 +6,12 @@ from pydantic import Field, field_validator, model_validator
 from skimage.morphology import closing, disk, opening
 from skimage.transform import resize
 
-from multiplex_pipeline.processors.base import (
+from plex_pipe.processors.base import (
     BaseOp,
     OutputType,
     ProcessorParamsBase,
 )
-from multiplex_pipeline.processors.registry import register
+from plex_pipe.processors.registry import register
 
 ################################################################################
 # Mask Builders

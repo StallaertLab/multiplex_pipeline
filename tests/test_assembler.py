@@ -4,7 +4,7 @@ from pathlib import Path
 import tifffile
 import numpy as np
 import spatialdata as sd
-from multiplex_pipeline.core_cutting.assembler import CoreAssembler
+from plex_pipe.core_cutting.assembler import CoreAssembler
 
 def _write_tiff(path: Path, shape=(8, 8), dtype=np.uint16, value=1):
     arr = (np.ones(shape, dtype=dtype) * value)

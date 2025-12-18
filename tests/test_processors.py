@@ -3,8 +3,8 @@ import numpy as np
 from unittest.mock import MagicMock, patch, call
 
 # Import the controller and BaseOp
-from multiplex_pipeline.processors.base import BaseOp
-from multiplex_pipeline.processors.controller import ResourceBuildingController
+from plex_pipe.processors.base import BaseOp
+from plex_pipe.processors.controller import ResourceBuildingController
 
 # --- Fixtures ---
 
@@ -118,7 +118,7 @@ def test_bring_to_max_resolution(controller):
     # Should be 20x20
     assert upscaled.shape == (20, 20)
 
-@patch("multiplex_pipeline.processors.controller.Labels2DModel")
+@patch("plex_pipe.processors.controller.Labels2DModel")
 def test_pack_into_model_labels(MockLabelsModel, controller):
     """Verifies packing logic for Labels."""
     controller.builder.OUTPUT_TYPE.value = "labels"
@@ -131,7 +131,7 @@ def test_pack_into_model_labels(MockLabelsModel, controller):
     call_kwargs = MockLabelsModel.parse.call_args[1]
     assert call_kwargs["dims"] == ("y", "x")
 
-@patch("multiplex_pipeline.processors.controller.Image2DModel")
+@patch("plex_pipe.processors.controller.Image2DModel")
 def test_pack_into_model_image(MockImageModel, controller):
     """Verifies packing logic for Images (adds 'c' dimension)."""
     controller.builder.OUTPUT_TYPE.value = "image"
@@ -147,9 +147,9 @@ def test_pack_into_model_image(MockImageModel, controller):
 
 # --- Integration Test: The Full Run ---
 
-@patch("multiplex_pipeline.processors.controller.sd.get_pyramid_levels")
-@patch("multiplex_pipeline.processors.controller.resize") # Mock resize to save time
-@patch("multiplex_pipeline.processors.controller.Labels2DModel")
+@patch("plex_pipe.processors.controller.sd.get_pyramid_levels")
+@patch("plex_pipe.processors.controller.resize") # Mock resize to save time
+@patch("plex_pipe.processors.controller.Labels2DModel")
 def test_run_pipeline(MockLabelsModel, mock_resize, mock_get_pyramid, controller, mock_sdata):
     """
     Simulates a full run:
@@ -210,7 +210,7 @@ def test_run_save_to_disk(mock_sdata):
     mock_sdata._elements["in"].items.return_value = {"0": "d"}
     
     # Mock data fetch
-    with patch("multiplex_pipeline.processors.controller.sd.get_pyramid_levels") as mock_get:
+    with patch("plex_pipe.processors.controller.sd.get_pyramid_levels") as mock_get:
         mock_get.return_value = np.zeros((1, 10, 10))
         
         # Run

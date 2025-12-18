@@ -4,7 +4,7 @@ import pandas as pd
 from shapely.geometry import Polygon
 
 # Import module under test
-import multiplex_pipeline.core_definition.roi_utils as roi_utils
+import plex_pipe.core_definition.roi_utils as roi_utils
 
 # --- Fixtures ---
 

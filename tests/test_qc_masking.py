@@ -7,7 +7,7 @@ from anndata import AnnData
 from unittest.mock import MagicMock, patch
 
 # Import the class under test
-from multiplex_pipeline.object_quantification.qc_shape_masker import QcShapeMasker
+from plex_pipe.object_quantification.qc_shape_masker import QcShapeMasker
 
 # --- Fixtures ---
 

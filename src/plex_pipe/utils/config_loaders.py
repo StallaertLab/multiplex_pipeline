@@ -6,7 +6,7 @@ import platform
 
 import yaml
 
-from multiplex_pipeline.utils.config_schema import AnalysisConfig
+from plex_pipe.utils.config_schema import AnalysisConfig
 
 
 def load_workstation_config(config_path=None):

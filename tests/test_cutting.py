@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import dask.array as da
-from multiplex_pipeline.core_cutting.cutter import CoreCutter
+from plex_pipe.core_cutting.cutter import CoreCutter
 
 # --- Fixtures ---
 

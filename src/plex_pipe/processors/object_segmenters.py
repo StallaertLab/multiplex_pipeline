@@ -10,12 +10,12 @@ from pydantic import (
     Field,
 )
 
-from multiplex_pipeline.processors.base import (
+from plex_pipe.processors.base import (
     BaseOp,
     OutputType,
     ProcessorParamsBase,
 )
-from multiplex_pipeline.processors.registry import register
+from plex_pipe.processors.registry import register
 
 ################################################################################
 # Object Segmenters
