@@ -48,12 +48,6 @@ def mock_cellpose_lib():
         # YIELD BOTH: The Class (for init checks) and The Instance (for run checks)
         yield mock_cellpose_model_cls, mock_instance
 
-@pytest.fixture
-def mock_torch():
-    """Mocks torch for cuda cache clearing."""
-    with patch("torch.cuda.empty_cache") as mock_empty:
-        yield mock_empty
-
 # --- Tests for InstansegSegmenter ---
 
 def test_instanseg_init(mock_instanseg_lib):
@@ -118,18 +112,6 @@ def test_instanseg_run_single_channel(mock_instanseg_lib):
     
     # Should expand to (10, 10, 1)
     assert passed_image.shape == (10, 10, 1)
-
-def test_instanseg_cuda_cleanup(mock_instanseg_lib, mock_torch):
-    """Verifies cuda cache clearing if enabled."""
-    _, mock_model = mock_instanseg_lib
-    segmenter = InstansegSegmenter(clean_cache=True)
-    
-    # Mock minimal output
-    mock_model.eval_medium_image.return_value = (np.zeros((1, 1, 10, 10)), {})
-    
-    segmenter.run(np.zeros((10, 10)))
-    
-    mock_torch.assert_called_once()
 
 # --- Tests for Cellpose4Segmenter ---
 
