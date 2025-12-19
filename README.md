@@ -1,6 +1,6 @@
-# plex_pipe
+# PlexPipe
 
-
+[![codecov](https://codecov.io/github/StallaertLab/plex-pipe/graph/badge.svg?token=EI4L1DW720)](https://codecov.io/github/StallaertLab/plex-pipe)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/PlexPipe_logo_small_dark.png">
