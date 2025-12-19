@@ -2,20 +2,23 @@ import argparse
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
 
 import spatialdata as sd
 from loguru import logger
 
-from plex_pipe.utils.config_loaders import load_analysis_settings
 from plex_pipe.object_quantification.controller import QuantificationController
+from plex_pipe.utils.config_loaders import load_analysis_settings
+
 
 def configure_logging(settings):
     """
     Setup logging.
     """
 
-    log_file = settings.log_dir_path / f"cores_segmenation_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
+    log_file = (
+        settings.log_dir_path
+        / f"cores_segmenation_{datetime.now():%Y-%m-%d_%H-%M-%S}.log"
+    )
 
     logger.remove()
     logger.add(sys.stdout, level="DEBUG")
@@ -58,7 +61,7 @@ def main():
     logger.info("Starting quantification script.")
 
     # setup quantification controllers
-    quant_controller_list = [] 
+    quant_controller_list = []
     qc_prefix = settings.qc.prefix
     for quant in settings.quant:
 
@@ -66,28 +69,29 @@ def main():
         masks_keys = quant.masks
         connect_to_mask = quant.layer_connection
 
-        logger.info(f"Setting up quantification controller for '{table_name}' table with masks {masks_keys} and connection to '{connect_to_mask}' mask")
+        logger.info(
+            f"Setting up quantification controller for '{table_name}' table with masks {masks_keys} and connection to '{connect_to_mask}' mask"
+        )
 
         controller = QuantificationController(
             table_name=table_name,
             mask_keys=masks_keys,
             connect_to_mask=connect_to_mask,
             overwrite=True,
-            quantify_qc = True,
-            qc_prefix = qc_prefix,
+            quantify_qc=True,
+            qc_prefix=qc_prefix,
         )
 
-        quant_controller_list.append(controller) 
-
+        quant_controller_list.append(controller)
 
     # define the cores for the analysis
-    core_dir = settings.analysis_dir / 'cores'
+    core_dir = settings.analysis_dir / "cores"
     path_list = [core_dir / f for f in os.listdir(core_dir)]
     path_list.sort()
 
     # run processing
     for sd_path in path_list:
-    
+
         logger.info(f"Processing {sd_path.name}")
 
         # get sdata
@@ -96,6 +100,7 @@ def main():
         # run quantification
         for controller in quant_controller_list:
             controller.run(sdata)
+
 
 if __name__ == "__main__":
     main()

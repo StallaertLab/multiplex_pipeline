@@ -86,7 +86,7 @@ class ResourceBuildingController:
             f"All channels have required resolution level: {self.resolution_level}"
         )
 
-    def validate_sdata_as_input(self,sdata):
+    def validate_sdata_as_input(self, sdata):
         """Runs all input validation checks."""
 
         self.validate_elements_present(sdata)
@@ -114,7 +114,9 @@ class ResourceBuildingController:
                     )
                     del sdata[out_name]
                     logger.info(f"Existing element '{out_name}' deleted from sdata.")
-                    if out_name in [x.split('/')[-1] for x in sdata.elements_paths_on_disk()]:
+                    if out_name in [
+                        x.split("/")[-1] for x in sdata.elements_paths_on_disk()
+                    ]:
                         sdata.delete_element_from_disk(out_name)
                         logger.info(f"Existing element '{out_name}' deleted from disk.")
 
@@ -204,7 +206,7 @@ class ResourceBuildingController:
         new_elements = self.builder.run(*data_sources)
 
         # forced cleanup
-        del data_sources 
+        del data_sources
 
         if not isinstance(new_elements, Sequence):
             new_elements = [new_elements]

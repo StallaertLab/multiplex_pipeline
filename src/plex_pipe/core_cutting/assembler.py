@@ -72,15 +72,14 @@ class CoreAssembler:
         if not channel_files:
             raise ValueError(f"No TIFFs found for core: {core_id}")
 
-        images = {}
         used_channels = []
 
         # initialize object
-        sdata = SpatialData()   
+        sdata = SpatialData()
 
         # save to drive
         output_path = os.path.join(self.output_dir, f"{core_id}.zarr")
-        sdata.write(output_path, overwrite=True)     
+        sdata.write(output_path, overwrite=True)
 
         for fname in channel_files:
             channel_name = os.path.splitext(fname)[0]
@@ -103,7 +102,7 @@ class CoreAssembler:
             )
 
             sdata[channel_name] = image_model
-            sdata.write_element(channel_name, overwrite = True)
+            sdata.write_element(channel_name, overwrite=True)
             used_channels.append(channel_name)
 
             # release memory

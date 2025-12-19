@@ -63,7 +63,6 @@ def scan_channels_from_list(
             h_parts = parts[4].split("-")
             marker = "-".join(h_parts[:-1]) if len(h_parts) > 1 else h_parts[0]
 
-
         channel_name = f"{round_num:03d}_{marker}"
         image_dict[channel_name] = filepath
 

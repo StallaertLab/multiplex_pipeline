@@ -1,5 +1,7 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 
 def base_cfg(**overrides):
     """Minimal valid analysis config dict; callers can override fields as needed."""
@@ -36,12 +38,17 @@ def base_cfg(**overrides):
         "additional_elements": [],
         "qc": {"prefix": "Q"},
         "quant": [{"name": "q1", "masks": {"m": "L"}, "layer_connection": None}],
-        "sdata_storage": {"chunk_size": [1, 512, 512], "max_pyramid_level": 4, "downscale": 2},
+        "sdata_storage": {
+            "chunk_size": [1, 512, 512],
+            "max_pyramid_level": 4,
+            "downscale": 2,
+        },
     }
     # shallow updates only where provided
     for k, v in overrides.items():
         cfg[k] = v
     return cfg
+
 
 def test_resolves_paths_and_defaults_local(tmp_path, monkeypatch):
     """
@@ -77,10 +84,14 @@ def test_validate_pipeline_detects_missing_inputs():
     cfg = base_cfg(
         additional_elements=[
             {"category": "mask_builder", "type": "blob", "input": "I0", "output": "L1"},
-            {"category": "mask_builder", "type": "blob", "input": "MISSING", "output": "O0"},
+            {
+                "category": "mask_builder",
+                "type": "blob",
+                "input": "MISSING",
+                "output": "O0",
+            },
         ]
     )
-
 
     model = AnalysisConfig.model_validate(cfg, context={"remote_analysis": False})
     with pytest.raises(ValueError) as ei:

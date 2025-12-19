@@ -1,5 +1,4 @@
 import re
-from functools import reduce
 from typing import Dict, List, Optional
 
 import anndata as ad
@@ -10,8 +9,8 @@ from loguru import logger
 from skimage.measure import regionprops_table
 from spatialdata.models import TableModel
 
-from plex_pipe.utils.im_utils import calculate_median
 from plex_pipe.object_quantification.qc_shape_masker import QcShapeMasker
+from plex_pipe.utils.im_utils import calculate_median
 
 
 class QuantificationController:
@@ -21,8 +20,8 @@ class QuantificationController:
         table_name: str = "quantification",
         connect_to_mask: Optional[str] = None,
         to_quantify: Optional[List[str]] = None,
-        quantify_qc = False,
-        qc_prefix: Optional[str] = 'qc_exclude',
+        quantify_qc=False,
+        qc_prefix: Optional[str] = "qc_exclude",
         overwrite: bool = False,
     ) -> None:
         """
@@ -208,7 +207,10 @@ class QuantificationController:
                 logger.error(message)
                 raise ValueError(message)
 
-        if self.connect_to_mask is not None and self.connect_to_mask not in self.sdata.labels:
+        if (
+            self.connect_to_mask is not None
+            and self.connect_to_mask not in self.sdata.labels
+        ):
             message = f"Cannot connect the table to {self.connect_to_mask}, not present in sdata."
             logger.error(message)
             raise ValueError(message)
@@ -327,9 +329,9 @@ class QuantificationController:
         # add quantification of qc if requested
         if self.quantify_qc:
             qc_masker = QcShapeMasker(
-                table_name = self.table_name,
-                qc_prefix = self.qc_prefix,
-                write_to_disk = False
+                table_name=self.table_name,
+                qc_prefix=self.qc_prefix,
+                write_to_disk=False,
             )
             qc_masker.run(self.sdata)
 

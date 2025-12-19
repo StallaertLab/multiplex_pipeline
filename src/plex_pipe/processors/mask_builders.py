@@ -63,7 +63,7 @@ class RingBuilder(BaseOp):
     ######################################################
     # current implementation is super slow and not memory efficient
     ######################################################
-    
+
     class Params(ProcessorParamsBase):
         """Parameters for creating a ring mask."""
 
@@ -89,7 +89,7 @@ class RingBuilder(BaseOp):
         mask_big = expand_labels(mask, self.params.outer)
         mask_small = expand_labels(mask, self.params.inner)
         mask_big[mask_small > 0] = 0
-        
+
         return mask_big
 
 

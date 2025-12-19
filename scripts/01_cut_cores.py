@@ -53,7 +53,7 @@ def parse_args():
         help="Use remote analysis directory as base.",
     )
     parser.add_argument("--globus_config", help="Path to Globus config.")
-    
+
     parser.add_argument(
         "--from_collection",
         help="Key for source collection in Globus config.",
@@ -109,15 +109,17 @@ def main():
         gc = None
 
     # map channels to image paths
-    channel_map = discover_channels(image_path,
-                                    include_channels=settings.core_cutting.include_channels,
-                                    exclude_channels=settings.core_cutting.exclude_channels,
-                                    use_markers=settings.core_cutting.use_markers,
-                                    ignore_markers=settings.core_cutting.ignore_markers,
-                                    gc=gc)
+    channel_map = discover_channels(
+        image_path,
+        include_channels=settings.core_cutting.include_channels,
+        exclude_channels=settings.core_cutting.exclude_channels,
+        use_markers=settings.core_cutting.use_markers,
+        ignore_markers=settings.core_cutting.ignore_markers,
+        gc=gc,
+    )
 
     # get cores coordinates
-    df_path = settings.core_info_file_path.with_suffix('.pkl')
+    df_path = settings.core_info_file_path.with_suffix(".pkl")
     df = pd.read_pickle(df_path)
 
     # build transfer map
@@ -127,7 +129,9 @@ def main():
     # define file access
     if gc:
         # initialize Globus transfer
-        strategy = GlobusFileStrategy(tc=tc, transfer_map=transfer_map, gc=gc, cleanup_enabled = True)
+        strategy = GlobusFileStrategy(
+            tc=tc, transfer_map=transfer_map, gc=gc, cleanup_enabled=True
+        )
         # build a dict for transfered images
         image_paths = {
             ch: str(Path(transfer_cache_dir) / Path(remote).name)
@@ -140,16 +144,16 @@ def main():
 
     # setup cutting controller
     controller = CorePreparationController(
-        metadata_df = df, # df defines which cores to process
-        image_paths = image_paths,
-        temp_dir = settings.cores_dir_tif,
-        output_dir = settings.cores_dir_output,
-        file_strategy = strategy,
-        margin = settings.core_cutting.margin,
-        mask_value = settings.core_cutting.mask_value,
-        max_pyramid_levels = settings.sdata_storage.max_pyramid_level,
-        chunk_size = settings.sdata_storage.chunk_size,
-        downscale = settings.sdata_storage.chunk_size,
+        metadata_df=df,  # df defines which cores to process
+        image_paths=image_paths,
+        temp_dir=settings.cores_dir_tif,
+        output_dir=settings.cores_dir_output,
+        file_strategy=strategy,
+        margin=settings.core_cutting.margin,
+        mask_value=settings.core_cutting.mask_value,
+        max_pyramid_levels=settings.sdata_storage.max_pyramid_level,
+        chunk_size=settings.sdata_storage.chunk_size,
+        downscale=settings.sdata_storage.chunk_size,
     )
 
     # run core cutting

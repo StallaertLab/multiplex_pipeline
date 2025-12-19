@@ -1,25 +1,24 @@
 from functools import partial
 
+import numpy as np
+from geopandas import GeoDataFrame
 from qtpy.QtWidgets import (
-    QCheckBox,
+    QComboBox,
     QGridLayout,
     QGroupBox,
     QLabel,
     QPushButton,
     QVBoxLayout,
     QWidget,
-    QComboBox,
 )
-
-import numpy as np
-from geopandas import GeoDataFrame
 from shapely import Polygon
 from spatialdata.models import ShapesModel
 from spatialdata.transformations import Identity
 
+
 class QCWidget(QWidget):
 
-    def __init__(self, napari_viewer: "Viewer", sdata) -> None:
+    def __init__(self, napari_viewer, sdata) -> None:
 
         super().__init__()
         self.setLayout(QVBoxLayout())
@@ -29,10 +28,10 @@ class QCWidget(QWidget):
         self.camera_center = None
         self.camera_zoom = None
         self.sdata = sdata
-        self.im_list = sorted(list(sdata.images.keys()))  # stable order
+        self.im_list = sorted(sdata.images.keys())
         self.len = len(self.im_list)
         self.im_name = self.im_list[self.position]
-        self.shapes_name = f'qc_exclude_{self.im_name}'
+        self.shapes_name = f"qc_exclude_{self.im_name}"
 
         navigation_group = QGroupBox()
         navigation_group.setLayout(QVBoxLayout())
@@ -42,7 +41,7 @@ class QCWidget(QWidget):
         # add navigation row
         self.navigation_row = self.add_navigation_control()
         navigation_group.layout().addWidget(self.navigation_row)
-    
+
         # add saving buttons
         save_btn = self.add_save_btn()
         navigation_group.layout().addWidget(save_btn)
@@ -78,7 +77,7 @@ class QCWidget(QWidget):
         navigation_row.layout().addWidget(self.position_label, 1, 1)
 
         return navigation_row
-    
+
     def add_backward_btn(self) -> QPushButton:
 
         backward_btn = QPushButton("<")
@@ -86,7 +85,7 @@ class QCWidget(QWidget):
         backward_btn.clicked.connect(partial(self.step, True))
 
         return backward_btn
-    
+
     def add_forward_btn(self) -> QPushButton:
 
         forward_btn = QPushButton(">")
@@ -96,19 +95,19 @@ class QCWidget(QWidget):
         return forward_btn
 
     def on_choice(self, text: str):
-        
+
         # save shapes
         self.remember_shapes()
 
         # remember camera
         self.remember_display()
-        
+
         # read in the position
         self.position = self.im_list.index(text)
-        
+
         # update display
         self.update_display()
-    
+
     def add_dropdown(self) -> QComboBox:
 
         combo = QComboBox()
@@ -125,14 +124,17 @@ class QCWidget(QWidget):
     def datatree_to_dask_list(self, ms_tree):
 
         def scale_idx(key):
-            try: return int(key.replace("scale", ""))
-            except Exception: return 0
+            try:
+                return int(key.replace("scale", ""))
+            except ValueError:
+                return 0
+
         items = sorted(ms_tree.items(), key=lambda kv: scale_idx(kv[0]))
 
         levels = []
         for _, node in items:
             da = next(iter(node.data_vars.values()))
-            levels.append(da.data)   
+            levels.append(da.data)
         return levels
 
     def show_current(self):
@@ -142,16 +144,23 @@ class QCWidget(QWidget):
         self.viewer.add_image(
             levels,
             visible=True,
-            name = self.im_name,
-            blending = 'additive',
-            contrast_limits = self.sdata[self.im_name].attrs.get("contrast"),
+            name=self.im_name,
+            blending="additive",
+            contrast_limits=self.sdata[self.im_name].attrs.get("contrast"),
         )
 
         if self.shapes_name in self.sdata:
-            data = [np.array(self.sdata[self.shapes_name].geometry[i].exterior.coords)[:, ::-1] for i in range(len(self.sdata[self.shapes_name]))]
+            data = [
+                np.array(self.sdata[self.shapes_name].geometry[i].exterior.coords)[
+                    :, ::-1
+                ]
+                for i in range(len(self.sdata[self.shapes_name]))
+            ]
         else:
-            data = []    
-        self.shapes_layer = self.viewer.add_shapes(data = data, name = self.shapes_name, shape_type = 'polygon')
+            data = []
+        self.shapes_layer = self.viewer.add_shapes(
+            data=data, name=self.shapes_name, shape_type="polygon"
+        )
 
         if self.camera_center:
             self.viewer.camera.center = self.camera_center
@@ -161,7 +170,7 @@ class QCWidget(QWidget):
 
         # updata current names
         self.im_name = self.im_list[self.position]
-        self.shapes_name = f'qc_exclude_{self.im_name}'
+        self.shapes_name = f"qc_exclude_{self.im_name}"
 
         # clear viewer
         self.clear_viewer()
@@ -182,7 +191,7 @@ class QCWidget(QWidget):
         layer = self.viewer.layers[self.im_name]
         contrast = layer.contrast_limits
 
-        self.sdata[self.im_name].attrs['contrast'] = contrast
+        self.sdata[self.im_name].attrs["contrast"] = contrast
 
     def step(self, backward=False):
 
@@ -192,10 +201,9 @@ class QCWidget(QWidget):
         # remember camera
         self.remember_display()
 
-
         if backward:
-            if self.position == 0:         
-                return 
+            if self.position == 0:
+                return
             else:
                 self.position -= 1
         else:
@@ -218,9 +226,16 @@ class QCWidget(QWidget):
 
     def remember_shapes(self):
         if self.shapes_name in [x.name for x in self.viewer.layers]:
-            
+
             if self.viewer.layers[self.shapes_name].data:
-                gdf = GeoDataFrame({"geometry": [self.numpy_to_shapely(x) for x in self.viewer.layers[self.shapes_name].data]})
+                gdf = GeoDataFrame(
+                    {
+                        "geometry": [
+                            self.numpy_to_shapely(x)
+                            for x in self.viewer.layers[self.shapes_name].data
+                        ]
+                    }
+                )
                 gdf = ShapesModel.parse(gdf, transformations={"global": Identity()})
                 self.sdata.shapes[self.shapes_name] = gdf
             else:
@@ -235,12 +250,12 @@ class QCWidget(QWidget):
         save_btn.setToolTip("Overwrite shapes on disk for the current layer.")
 
         return save_btn
-    
+
     def re_save_element(self, element):
 
-        if f'shapes/{element}' in self.sdata.elements_paths_on_disk():
+        if f"shapes/{element}" in self.sdata.elements_paths_on_disk():
             self.sdata.delete_element_from_disk(element)
-        
+
         self.sdata.write_element(element)
 
     def save_shapes_layer(self):
@@ -248,7 +263,7 @@ class QCWidget(QWidget):
 
         self.re_save_element(self.shapes_name)
 
-        self.viewer.status = f'{self.shapes_name} has been saved to disk.'
+        self.viewer.status = f"{self.shapes_name} has been saved to disk."
 
     def add_save_all_btn(self) -> QPushButton:
 
@@ -264,7 +279,7 @@ class QCWidget(QWidget):
         for element in list(self.sdata.shapes.keys()):
             self.re_save_element(element)
 
-        self.viewer.status = 'All shapes have been saved to disk.'
+        self.viewer.status = "All shapes have been saved to disk."
 
     def create_global_mask(self):
         pass

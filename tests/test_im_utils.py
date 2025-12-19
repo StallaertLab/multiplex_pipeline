@@ -1,11 +1,13 @@
-import pytest
-import numpy as np
 from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
 
 # Import module under test
 import plex_pipe.utils.im_utils as im_utils
 
 # --- Fixtures ---
+
 
 @pytest.fixture
 def mock_zarr_structure():
@@ -37,9 +39,10 @@ def test_get_zarr_levels_num(mock_zarr_open, mock_imread, mock_zarr_structure):
     mock_zarr_open.return_value = mock_group
 
     count = im_utils.get_zarr_levels_num("test.zarr")
-    
+
     # We defined 3 datasets in the fixture
     assert count == 3
+
 
 @patch("plex_pipe.utils.im_utils.get_small_image")
 def test_prepare_rgb_image_math(mock_get_small):
@@ -49,7 +52,7 @@ def test_prepare_rgb_image_math(mock_get_small):
     """
     # Create a gradient image 0..100
     # Reshape to 10x10
-    input_im = np.arange(100).reshape(10, 10) 
+    input_im = np.arange(100).reshape(10, 10)
     mock_get_small.return_value = input_im
 
     # Request normalization ignoring the bottom 10% and top 10%
@@ -60,7 +63,7 @@ def test_prepare_rgb_image_math(mock_get_small):
 
     # 1. Check Output Shape: Must be (H, W, 3)
     assert rgb.shape == (10, 10, 3)
-    
+
     # 2. Check Data Type: Must be uint8 for plotting/saving
     assert rgb.dtype == np.uint8
 
@@ -75,5 +78,5 @@ def test_prepare_rgb_image_math(mock_get_small):
     # 5. Check Mid tones (Logic check)
     # Value 50 should be roughly middle gray (~127)
     # (50 - 10) / (90 - 10) = 40/80 = 0.5 -> 127.5
-    mid_pixel = rgb[5, 0] # Input value 50
+    mid_pixel = rgb[5, 0]  # Input value 50
     assert 120 < mid_pixel[0] < 135

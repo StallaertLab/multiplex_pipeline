@@ -175,7 +175,7 @@ class GlobusFileStrategy(FileAvailabilityStrategy):
         time.sleep(sleep_for)
         return min(delay * 2, MAX_DELAY)
 
-    def is_channel_ready(self, channel: str, path: str=None) -> bool:
+    def is_channel_ready(self, channel: str, path: str = None) -> bool:
         """Return True when the file for `channel` is ready; False if still pending.
         Raises on impossible states or hard failures."""
 
@@ -233,7 +233,6 @@ class LocalFileStrategy(FileAvailabilityStrategy):
 
     def cleanup(self, path: Path) -> None:
         """Local files are left untouched."""
-        pass
 
 
 # Supporting file I/O functions

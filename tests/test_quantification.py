@@ -1,19 +1,23 @@
-import pytest
-from pathlib import Path
-import spatialdata as sd
 import shutil
-from plex_pipe.object_quantification.controller import QuantificationController 
+from pathlib import Path
+
+import pytest
+import spatialdata as sd
+
+from plex_pipe.object_quantification.controller import QuantificationController
+
 
 @pytest.fixture(scope="session")
 def example_sdata_copy(tmp_path_factory):
     """
     Create a single session-level copy of the example .zarr dataset.
     """
-    project_root = Path(__file__).parent 
+    project_root = Path(__file__).parent
     src = project_root / "example_data" / "Core_000.zarr"
     dst = tmp_path_factory.mktemp("example_sdata") / "Core_000.zarr"
     shutil.copytree(src, dst)
     return dst
+
 
 @pytest.fixture
 def sdata_read(example_sdata_copy):
@@ -31,23 +35,28 @@ def test_validate_inputs_raises_on_missing_mask_or_channel(sdata_read):
 
     sdata = sdata_read
 
-    qc = QuantificationController(mask_keys={"cell": "instanseg_cell"}, to_quantify=["DAPI"])
+    qc = QuantificationController(
+        mask_keys={"cell": "instanseg_cell"}, to_quantify=["DAPI"]
+    )
     qc.sdata = sdata
     qc.validate_sdata_as_input()
 
-    ch = 'ch1'
-    qc = QuantificationController(mask_keys={"cell": "instanseg_cell"}, to_quantify=[ch])
+    ch = "ch1"
+    qc = QuantificationController(
+        mask_keys={"cell": "instanseg_cell"}, to_quantify=[ch]
+    )
     qc.sdata = sdata
     with pytest.raises(ValueError) as er:
         qc.validate_sdata_as_input()
     assert f"Channel '{ch}' not found in sdata" in str(er.value)
 
-    mask = 'x'
+    mask = "x"
     qc = QuantificationController(mask_keys={"cell": mask}, to_quantify=[ch])
     qc.sdata = sdata
     with pytest.raises(ValueError) as er:
         qc.validate_sdata_as_input()
     assert f"Mask '{mask}' not found in sdata. Masks present" in str(er.value)
+
 
 def test_overwrite_semantics_respected_on_existing_table(sdata_read):
     """
@@ -58,9 +67,9 @@ def test_overwrite_semantics_respected_on_existing_table(sdata_read):
     """
     sdata = sdata_read
 
-    table_name = 'instanseg_table'
-    mask = 'instanseg_cell'
-    ch = 'DAPI'
+    table_name = "instanseg_table"
+    mask = "instanseg_cell"
+    ch = "DAPI"
 
     # overwrite=False -> error
     qc_no_over = QuantificationController(
@@ -82,6 +91,7 @@ def test_overwrite_semantics_respected_on_existing_table(sdata_read):
     )
     qc_over.run(sdata)
 
+
 def test_run_writes_new_table_and_aligns_vars_obs(sdata_read):
     """
     Runs controller on a temp copy and asserts:
@@ -93,7 +103,7 @@ def test_run_writes_new_table_and_aligns_vars_obs(sdata_read):
     sdata = sdata_read
     mask_key, ch_key = "instanseg_cell", "DAPI"
 
-    new_table = "qc_test_table"  
+    new_table = "qc_test_table"
     assert new_table not in getattr(sdata, "tables", {})
 
     qc = QuantificationController(
@@ -115,4 +125,4 @@ def test_run_writes_new_table_and_aligns_vars_obs(sdata_read):
     # Use a relaxed check: presence of "mean" and "median" features related to the channel
     assert any(ch_key in v and "mean" in v for v in var_names)
     assert any(ch_key in v and "median" in v for v in var_names)
-    assert 'area_cell' in adata.obs.columns
+    assert "area_cell" in adata.obs.columns

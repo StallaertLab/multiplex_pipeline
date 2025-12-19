@@ -1,4 +1,3 @@
-import os
 from pathlib import PurePosixPath, PureWindowsPath
 
 from globus_sdk import GlobusAPIError
@@ -159,8 +158,10 @@ class GlobusPathConverter:
                 raise RuntimeError("shared_root not set for subfolder_root layout.")
             try:
                 rel_path = p.relative_to(self.shared_root)
-            except ValueError:
-                raise ValueError(f"Path '{win_path}' is outside the shared root: '{self.shared_root}'")
+            except ValueError as err:
+                raise ValueError(
+                    f"Path '{win_path}' is outside the shared root: '{self.shared_root}'"
+                ) from err
             return str(PurePosixPath("/", rel_path))
 
         else:

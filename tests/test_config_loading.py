@@ -1,13 +1,12 @@
 import pytest
-import copy
-from unittest.mock import MagicMock, patch
 
 import plex_pipe.utils.config_loaders as config_loaders
+
 
 @pytest.fixture
 def normalization_config():
     """
-    Creates a configuration dictionary mirroring the user's specific 
+    Creates a configuration dictionary mirroring the user's specific
     image_transformer normalization scenario.
     """
     return {
@@ -16,22 +15,20 @@ def normalization_config():
                 "category": "image_transformer",
                 "type": "normalize",
                 # The list of channels to process
-                "input": ["DAPI", "CD45", "HLA1"], 
+                "input": ["DAPI", "CD45", "HLA1"],
                 # The output pattern dependent on the input
                 "output": "${input}_norm",
                 # Nested parameters that must be preserved
-                "parameters": {
-                    "low": 1,
-                    "high": 99.8
-                },
+                "parameters": {"low": 1, "high": 99.8},
             }
         ]
     }
 
+
 def test_expand_image_transformer_normalization(normalization_config):
     """
     Verifies the expansion logic for the specific image_transformer case.
-    
+
     Scenario:
     - Input is a list of 3 channels.
     - Output string contains ${input}.
@@ -48,7 +45,7 @@ def test_expand_image_transformer_normalization(normalization_config):
     first_step = steps[0]
     assert first_step["input"] == "DAPI"
     # Crucial: Check if ${input} in 'output' was replaced
-    assert first_step["output"] == "DAPI_norm" 
+    assert first_step["output"] == "DAPI_norm"
     # Check if static metadata is preserved
     assert first_step["category"] == "image_transformer"
     assert first_step["parameters"]["low"] == 1

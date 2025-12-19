@@ -45,8 +45,8 @@ segmentation-gpu = [
 ]
 gui = [
     "napari>=0.6.6",
-    "qtpy>=2.4.0",      
-    "PyQt5>=5.15.2",       
+    "qtpy>=2.4.0",
+    "PyQt5>=5.15.2",
 ]
 dev = [
     "tox>=4.12.0",

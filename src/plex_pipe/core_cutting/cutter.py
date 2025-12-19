@@ -1,6 +1,6 @@
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
 
 
 class CoreCutter:
@@ -60,7 +60,6 @@ class CoreCutter:
             poly_rc_local = polygon - np.array([y0m, x0m])[None, :]
             poly_xy_int32 = np.round(poly_rc_local[:, [1, 0]]).astype(np.int32)
 
-            
             # poly_y, poly_x = zip(*shifted_polygon)
 
             # # Create polygon mask

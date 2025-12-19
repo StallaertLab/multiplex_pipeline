@@ -1,24 +1,22 @@
 from itertools import groupby
-import spatialdata as sd
-from loguru import logger
 from typing import Optional
 
 import numpy as np
-from shapely import Point
-import numpy as np
-import geopandas as gpd
+import spatialdata as sd
+from loguru import logger
 from shapely import Point
 from shapely.strtree import STRtree
 
+
 class QcShapeMasker:
-    
+
     def __init__(
         self,
         table_name: str = "quantification",
         qc_prefix: str = "qc_exclude",
         object_name: Optional[str] = "cell",
         layer_name: Optional[str] = "qc_mask",
-        write_to_disk = False,
+        write_to_disk=False,
     ) -> None:
 
         self.table_name = table_name
@@ -36,11 +34,13 @@ class QcShapeMasker:
             msg = f"Table {self.table_name} not present in the spatialdata object."
             logger.error(msg)
             raise ValueError(msg)
-        
+
         # check that the centroids of the selected object are present in obsm
-        expected_name = f'centroid_{self.object_name}'
+        expected_name = f"centroid_{self.object_name}"
         if expected_name in list(self.sdata[self.table_name].obsm.keys()):
-            logger.info(f"Centroids: {expected_name} present in the anndata table {self.table_name}.")
+            logger.info(
+                f"Centroids: {expected_name} present in the anndata table {self.table_name}."
+            )
         else:
             msg = f"Centroids: {expected_name} not present in the anndata table {self.table_name}."
             logger.error(msg)
@@ -52,10 +52,8 @@ class QcShapeMasker:
 
         try:
             self.sdata.delete_element_from_disk(self.table_name)
-            self.sdata.write_element(self.table_name, overwrite = True)
-            logger.success(
-                f"Table '{self.table_name}' written to {self.sdata.path}."
-            )
+            self.sdata.write_element(self.table_name, overwrite=True)
+            logger.success(f"Table '{self.table_name}' written to {self.sdata.path}.")
         except Exception as e:
             logger.error(f"Failed to write table '{self.table_name}': {e}")
             raise
@@ -80,7 +78,9 @@ class QcShapeMasker:
             candidate_polys = [polys[j] for j in poly_idx]
             candidate_points = [points[i] for i in p_idx]
 
-            exact = [poly.covers(pt) for pt, poly in zip(candidate_points, candidate_polys)]
+            exact = [
+                poly.covers(pt) for pt, poly in zip(candidate_points, candidate_polys)
+            ]
 
             # Any True among candidates marks the point as inside some polygon
             for i, is_in in zip(p_idx, exact):
@@ -91,14 +91,19 @@ class QcShapeMasker:
 
     def build_qc_mask(self):
 
-        coords = np.asarray(self.sdata[self.table_name].obsm[f"centroid_{self.object_name}"], dtype=float)
-        coords = coords[:, ::-1] # swap to match Interactive
+        coords = np.asarray(
+            self.sdata[self.table_name].obsm[f"centroid_{self.object_name}"],
+            dtype=float,
+        )
+        coords = coords[:, ::-1]  # swap to match Interactive
         points = [Point(xy) for xy in coords]
 
-        mask = np.ones(self.sdata[self.table_name].X.shape, dtype='bool')
+        mask = np.ones(self.sdata[self.table_name].X.shape, dtype="bool")
 
-        markers = [x.split('_')[0] for x in self.sdata[self.table_name].var.index.tolist()]
-        
+        markers = [
+            x.split("_")[0] for x in self.sdata[self.table_name].var.index.tolist()
+        ]
+
         # group by marker
         for marker, group in groupby(enumerate(markers), key=lambda t: t[1]):
             # collect the contiguous indices for this marker
@@ -107,7 +112,7 @@ class QcShapeMasker:
 
             shapes_key = f"{self.qc_prefix}_{marker}"
             if shapes_key not in self.sdata:
-                # no QC shapes for this marker 
+                # no QC shapes for this marker
                 continue
 
             shapes_gdf = self.sdata[shapes_key]
@@ -127,19 +132,18 @@ class QcShapeMasker:
         self,
         sdata: sd.SpatialData,
     ) -> None:
-        
+
         self.sdata = sdata
-        
+
         # validate input
         self.validate_sdata()
-        
+
         # add qc_mask
         mask = self.build_qc_mask()
 
         # add mask to anndata
         self.sdata[self.table_name].layers[self.layer_name] = mask
-        
+
         # save to disk if requested
         if self.write_to_disk:
             self.rewrite_table()
-        

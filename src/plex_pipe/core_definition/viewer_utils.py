@@ -1,5 +1,7 @@
 """Napari viewer helpers for displaying and saving ROI layers."""
+
 from pathlib import Path
+
 import napari
 from qtpy.QtWidgets import QFileDialog
 
@@ -93,7 +95,7 @@ def display_saved_rois(viewer, IM_LEVEL, save_path=None):
         redo_bbox_layer(viewer, rect_list, df["core_name"].tolist())
         redo_cores_layer(viewer, poly_list, shape_type=df.poly_type.to_list())
     else:
-        viewer.add_shapes(data = [], name ='cores')
+        viewer.add_shapes(data=[], name="cores")
         viewer.status = "No previous rois found!"
 
 
