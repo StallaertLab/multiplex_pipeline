@@ -38,7 +38,7 @@ class InstansegSegmenter(BaseOp):
         )
         resolve_cell_and_nucleus: bool = True
         cleanup_fragments: bool = True
-        clean_cache: bool = True
+        clean_cache: bool = False
         normalise: bool = True
         overlap: int = 80
 
