@@ -120,7 +120,7 @@ class GlobusPathConverter:
                 "layout must be 'multi_drive', 'single_drive', or 'subfolder_root'"
             )
 
-        self.shared_root = os.path.normpath(shared_root) if shared_root else None
+        self.shared_root = PureWindowsPath(shared_root) if shared_root else None
 
         if layout == "subfolder_root" and not shared_root:
             raise RuntimeError("shared_root is required when layout='subfolder_root'")
@@ -141,36 +141,27 @@ class GlobusPathConverter:
         """
         # Normalize Windows path
         p = PureWindowsPath(win_path)
-        drive = (
-            p.drive[:-1] if p.drive.endswith(":") else p.drive
-        ).upper()  # Extract drive letter
-        parts_after_drive = p.parts[1:] if drive else p.parts
+        drive = p.drive.replace(":", "").upper()
 
         if self.layout == "multi_drive":
             if not drive:
                 raise ValueError(
                     "Path must include a drive (e.g., C:) for multi_drive layout."
                 )
-            posix = PurePosixPath("/", drive, *parts_after_drive)
-            return str(posix)
+            return str(PurePosixPath("/", drive, *p.parts[1:]))
 
         elif self.layout == "single_drive":
             # For single-drive or CIFS mounts (e.g., R:), root is mapped directly to /
-            posix = PurePosixPath("/", *parts_after_drive)
-            return str(posix)
+            return str(PurePosixPath("/", *p.parts[1:]))
 
         elif self.layout == "subfolder_root":
             if not self.shared_root:
                 raise RuntimeError("shared_root not set for subfolder_root layout.")
-            norm_win = os.path.normpath(win_path)
-            if (
-                os.path.commonprefix([norm_win.lower(), self.shared_root.lower()])
-                != self.shared_root.lower()
-            ):
-                raise ValueError(f"Path is outside the shared root: {self.shared_root}")
-            rel = os.path.relpath(norm_win, start=self.shared_root)
-            rel_posix = PurePosixPath(*PureWindowsPath(rel).parts)
-            return str(PurePosixPath("/", rel_posix))
+            try:
+                rel_path = p.relative_to(self.shared_root)
+            except ValueError:
+                raise ValueError(f"Path '{win_path}' is outside the shared root: '{self.shared_root}'")
+            return str(PurePosixPath("/", rel_path))
 
         else:
             raise ValueError(f"Unsupported layout: {self.layout}")

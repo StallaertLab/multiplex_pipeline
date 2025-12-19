@@ -69,5 +69,5 @@ def test_converter_subfolder_root_security_check():
     # Path is valid Windows path, but outside the allowed scope
     outside_path = r"C:\Windows\System32\secret.dll"
     
-    with pytest.raises(ValueError, match="Path is outside the shared root"):
+    with pytest.raises(ValueError, match="is outside the shared root"):
         conv.windows_to_globus(outside_path)
